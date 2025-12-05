@@ -6,6 +6,7 @@ from gui import iniciar_interface
 
 
 def main():
+    # função principal do orquestrador (definida dentro da main)
     def processar(credenciais, protocolos, cancelar_event, atualizar_progresso):
         pasta_resultados = criar_pasta_resultados()
         count_protocol = 0

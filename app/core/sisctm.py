@@ -416,7 +416,7 @@ class SisctmAuto:
 
     def capturar_areas(self):
         """
-        Captura dados das tabelas à esqueda da página.
+        Captura dados das tabelas à esquerda da página.
         """
         resultado = {}
         try:

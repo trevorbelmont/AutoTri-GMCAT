@@ -1,0 +1,118 @@
+2025-12-10 18:09:56,293 - INFO - Acessando o Sistema 0: SIGEDE
+2025-12-10 18:09:57,058 - INFO - Preenchendo usuário e senha
+2025-12-10 18:09:58,746 - INFO - Login realizado com sucesso
+2025-12-10 18:10:03,749 - INFO - Navegando para o SisCop
+2025-12-10 18:10:09,888 - INFO - Protocolo informado: 700693692507
+2025-12-10 18:10:11,299 - INFO - Pesquisa realizada com sucesso
+2025-12-10 18:10:16,301 - INFO - Verificando registros na tabela
+2025-12-10 18:10:16,441 - INFO - Print da tela salvo.
+2025-12-10 18:10:22,758 - INFO - Processo com situação (Executando) encontrado e clicado
+2025-12-10 18:10:22,759 - INFO - Iniciando download do Inteiro Teor
+2025-12-10 18:10:33,894 - INFO - Download concluído
+2025-12-10 18:10:33,895 - INFO - Acessando aba 'Índice Cadastral'
+2025-12-10 18:10:35,130 - INFO - Índices capturados: ['929028 029 0013']
+2025-12-10 18:10:35,132 - INFO - Buscando índice: 929028 029 0013 no Sigede (Zona, Quadra e Lote)
+2025-12-10 18:10:37,604 - INFO - Acessando SisCop
+2025-12-10 18:10:40,607 - INFO - Índice formatado para pesquisa: 929028 029 
+2025-12-10 18:10:40,639 - INFO - Selecionando opção 'Índice Cadastral' para pesquisa
+2025-12-10 18:10:40,719 - INFO - Inserindo índice no campo de pesquisa
+2025-12-10 18:10:41,868 - INFO - Clicando no botão pesquisar
+2025-12-10 18:10:47,695 - INFO - Print da tela salvo
+2025-12-10 18:10:49,927 - INFO - Driver encerrado normalmente no finally do context manager.
+2025-12-10 18:10:49,929 - INFO - SIGEDE concluído para protocolo 700693692507
+2025-12-10 18:10:53,856 - INFO - Acessando o Sistema 1: SIATU
+2025-12-10 18:10:54,424 - INFO - Preenchendo usuário e senha
+2025-12-10 18:10:55,282 - INFO - Login realizado com sucesso
+2025-12-10 18:10:59,191 - INFO - Iniciando download da PB: 929028 029 0013
+2025-12-10 18:10:59,299 - INFO - Índice cadastral preenchido
+2025-12-10 18:10:59,419 - INFO - Exercício clicado
+2025-12-10 18:11:01,544 - INFO - Botão 'planta básica' clicado
+2025-12-10 18:11:03,548 - INFO - Capturando dados do imóvel na página.
+2025-12-10 18:11:08,887 - INFO - Link 'Exercício Seguinte' não encontrado, seguindo...
+2025-12-10 18:11:14,044 - INFO - Link 'Recalculado' não encontrado, seguindo...
+2025-12-10 18:11:14,578 - INFO - Link 'Primeiro do Ano' clicado
+2025-12-10 18:11:17,308 - INFO - Download da PB disparado após 'Primeiro do Ano'
+2025-12-10 18:11:21,766 - INFO - Aba 'Alterações' acessada com sucesso.
+2025-12-10 18:11:24,894 - INFO - Print da aba Alterações salvo.
+2025-12-10 18:11:24,906 - INFO - Iniciando download de anexos para índice: 929028 029 0013
+2025-12-10 18:11:25,611 - INFO - Link 'Anexos' clicado
+2025-12-10 18:11:27,629 - INFO - Número de PDFs encontrados inicialmente: 1
+2025-12-10 18:11:27,665 - INFO - Processando PDF 1/1
+2025-12-10 18:11:28,086 - INFO - Clique realizado no PDF
+2025-12-10 18:11:28,780 - INFO - Download concluído
+2025-12-10 18:11:29,839 - INFO - Download de anexos finalizado. Total de PDFs processados: 1
+2025-12-10 18:11:32,053 - INFO - Driver encerrado normalmente no finally do context manager.
+2025-12-10 18:11:32,055 - INFO - Siatu concluído para índice 929028 029 0013
+2025-12-10 18:11:35,449 - INFO - Acessando o sistema 2: URBANO
+2025-12-10 18:11:38,784 - INFO - Iniciando login no Urbano
+2025-12-10 18:11:39,853 - INFO - Botão 'Acesso PBH' clicado
+2025-12-10 18:11:40,354 - INFO - Login realizado com sucesso no Urbano
+2025-12-10 18:11:40,355 - INFO - Iniciando pesquisa de projeto para índice: 929028 029 0013
+2025-12-10 18:12:02,972 - INFO - Projetos não encontrados na pesquisa
+2025-12-10 18:12:05,105 - INFO - Print da tela salvo
+2025-12-10 18:12:07,324 - INFO - Driver encerrado normalmente no finally do context manager.
+2025-12-10 18:12:07,325 - INFO - Urbano concluído para índice 929028 029 0013
+2025-12-10 18:12:10,688 - INFO - Iniciando login no SISCTM
+2025-12-10 18:12:16,482 - INFO - Campo de usuário preenchido via JS
+2025-12-10 18:12:16,511 - INFO - Campo de senha preenchido via JS
+2025-12-10 18:12:18,654 - INFO - Login realizado com sucesso
+2025-12-10 18:12:28,657 - INFO - Iniciando navegação pelo sistema SISCTM PBH
+2025-12-10 18:12:29,814 - INFO - Menu expandido com sucesso
+2025-12-10 18:12:32,021 - INFO - Item 'Fazenda' marcado
+2025-12-10 18:12:33,680 - INFO - Item 'IDE-BHGeo' desativado
+2025-12-10 18:12:35,601 - INFO - Menu de camadas aberto
+2025-12-10 18:12:37,780 - INFO - Menu 'Endereço' selecionado
+2025-12-10 18:12:39,538 - INFO - Camada 'Endereço PBH' marcada
+2025-12-10 18:12:41,221 - INFO - Menu 'Parcelamento do Solo' selecionado
+2025-12-10 18:12:43,012 - INFO - Camada 'Lote CP - ATIVO' marcada
+2025-12-10 18:12:44,701 - INFO - Camada 'Tributário' selecionada
+2025-12-10 18:12:46,331 - INFO - Menu do item 'IPTU CTM GEO' aberto
+2025-12-10 18:12:47,091 - INFO - Filtro aberto
+2025-12-10 18:12:47,963 - INFO - Opção de fazer filtro selecionada
+2025-12-10 18:12:48,230 - INFO - Item '_INDICE_CADASTRAL' selecionado
+2025-12-10 18:12:48,464 - INFO - Índice cadastral inserido: 929028 029 0013
+2025-12-10 18:12:48,847 - INFO - Filtro aplicado com sucesso
+2025-12-10 18:12:53,948 - INFO - Janela do filtro fechada
+2025-12-10 18:12:58,949 - INFO - Iniciando tentativa de clique no centro do mapa
+2025-12-10 18:12:58,993 - INFO - Viewport encontrado: tamanho 970x594
+2025-12-10 18:12:59,305 - INFO - Clique no centro do mapa realizado
+2025-12-10 18:13:19,463 - INFO - Print da tela salvo
+2025-12-10 18:13:20,668 - INFO - Elemento 'BHMap' clicado
+2025-12-10 18:13:22,950 - INFO - Ortofoto selecionada
+2025-12-10 18:13:33,179 - INFO - Print da tela salvo
+2025-12-10 18:13:33,180 - INFO - Prints aéreos capturados
+2025-12-10 18:13:33,182 - INFO - Navegação concluída com sucesso
+2025-12-10 18:13:33,183 - INFO - Iniciando captura de áreas do painel lateral (com espera)
+2025-12-10 18:13:43,579 - ERROR - Erro inesperado ao capturar áreas: Message: 
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0xdc0d13
+	0xdc0d54
+	0xbae6dd
+	0xbf93a5
+	0xbf977b
+	0xc40382
+	0xc1b534
+	0xc3db13
+	0xc1b2e6
+	0xbed321
+	0xbee1d4
+	0x1014d54
+	0x101030b
+	0x102cbea
+	0xddac18
+	0xde2c1d
+	0xdc9018
+	0xdc91d9
+	0xdb3568
+	0x778e7ba9
+	0x77adc10b
+	0x77adc08f
+
+2025-12-10 18:13:45,875 - INFO - Driver encerrado normalmente no finally do context manager.
+2025-12-10 18:13:45,876 - INFO - SISCTM concluído para índice 929028 029 0013
+2025-12-10 18:13:45,877 - ERROR - Erro no índice 929028 029 0013: 'str' object has no attribute 'get'
+2025-12-10 18:13:45,880 - INFO - Abrindo pasta de resultados: Resultados - 10 de dezembro de 2025 18h09
+2025-12-10 18:13:45,978 - INFO - Protocolos processados: 1
+2025-12-10 18:13:45,980 - INFO - ICs processados: 1
+2025-12-10 18:13:45,981 - INFO - Tempo: 3 min 54 seg

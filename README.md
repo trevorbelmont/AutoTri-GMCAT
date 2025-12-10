@@ -1,2 +1,2 @@
-# triagemGMCAT
-Automatização da triagem de processos.
+# Fork de automatização da triagem de processos (AutoTRI).
+### Repo Original: glaucoSapucaia / triagemGMCAT

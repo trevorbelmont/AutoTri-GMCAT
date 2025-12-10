@@ -7,6 +7,7 @@ from .sistemas import GoogleMaps
 from .sistemas import Sigede
 
 import os
+from typing import Dict, List, Any
 
 
 '''
@@ -18,25 +19,33 @@ Este módulo gerencia os caminhos de arquivos e pastas (checando a existência d
 '''
 
 
-def processar_protocolo(protocolo, credenciais, pasta_resultados):
+def processar_protocolo(protocolo: str, credenciais: Dict[str, str], pasta_resultados: str) -> List[str]:
     """
-    Execução do módulo SIGEDE (Protocolos) - O passo inicial da automação.
-    Captura indices cadastrais vinculados ao protocolo;
-    Criação da pasta protocolo.
-    A lista de índice retornada nessa função será utiliza nas próximas etapas da automação.
+    Execução do módulo SIGEDE (Protocolos). Captura de ICs no protocolo e cria a pasta do protocolo.
+    A lista de índices retornada nessa função será utiliza nas próximas etapas da automação.
+
+    :param protocolo: Número do protocolo a ser processado.
+    :param credenciais: Dicionário contendo as credenciais de acesso.
+    :param pasta_resultados: Caminho para a pasta raiz dos resultados.
+    :return: Lista de índices cadastrais (IC) vinculados ao protocolo.
     """
+   
     pasta_protocolo = os.path.join(pasta_resultados, protocolo)
     os.makedirs(pasta_protocolo, exist_ok=True)
 
-    indices = Sigede().executar(protocolo, credenciais, pasta_protocolo)
+    indices: List[str] = Sigede().executar(protocolo, credenciais, pasta_protocolo)
     return indices      # Retorna Lista de Índices Cadastrais (IC) a serem processados
 
 
-def processar_indice(indice, credenciais, protocolo, pasta_resultados):
+def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, pasta_resultados: str) -> None:
     """
-    Execução dos módulos SIATU, URBANO e SISCTM para UM ÚNICO índice especificado.
-    Gera relatório;
-    Criação da pasta IC.
+    Execução dos módulos SIATU, URBANO e SISCTM para UM ÚNICO índice especificado, Gera relatório e Cria a pasta do IC.
+    
+    :param indice: Índice cadastral (IC) a ser processado.
+    :param credenciais: Dicionário contendo as credenciais de acesso.
+    :param protocolo: Número do protocolo pai.
+    :param pasta_resultados: Caminho para a pasta raiz dos resultados.
+    :return: None
     """
 
     # Definição do caminho e criação da pasta 
@@ -46,11 +55,21 @@ def processar_indice(indice, credenciais, protocolo, pasta_resultados):
     #caso a pasta em questão não exista. Esse parâmetro garante que, caso não exista, ela seja criada no caminho especificado.
 
     # Executa a automação dos Bots Siatu, Urbano,Sisctm e GoogleMaps (via classes de serviços- os adapters dos "bot-core")
-    dados_pb, anexos_count = Siatu().executar(indice, credenciais, pasta_indice)
-    dados_projeto, projetos_count = Urbano().executar(indice, credenciais, pasta_indice)
-    dados_sisctm = Sisctm().executar(indice, credenciais, pasta_indice)
-    GoogleMaps().executar(indice, dados_sisctm, dados_pb, pasta_indice)
+    # Instancia variáveis e exectua Siatu
+    dados_pb: Dict[str, Any]
+    anexos_count: int
+    (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
 
+    # Instancia variáveis e executa Urbano.executar(...)
+    dados_projeto: Dict[str, Any]
+    projetos_count: int
+    (dados_projeto, projetos_count) = Urbano().executar(indice, credenciais, pasta_indice)
+
+    # Executa Sisctm
+    dados_sisctm: Dict[str, Any] = Sisctm().executar(indice, credenciais, pasta_indice)
+
+    # Executa GoogleMaps (não retorna valor)
+    GoogleMaps().executar(indice, dados_sisctm, dados_pb, pasta_indice)
 
     pdf_path = os.path.join(pasta_indice, f"1. Relatório de Triagem - {indice}.pdf")
     gerar_relatorio(

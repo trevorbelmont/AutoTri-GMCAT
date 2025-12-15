@@ -13,6 +13,9 @@ Detalhes da Triagem.*
 # Script que verifica indices duplicaodos
 indices_duplicados.py
 
+# Arquivos de metadados do Windows (Zone Identifier)
+*:Zone.Identifier
+
 #back_up
 /app.rar
 

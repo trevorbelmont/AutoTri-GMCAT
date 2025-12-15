@@ -13,5 +13,8 @@ Detalhes da Triagem.*
 # Script que verifica indices duplicaodos
 indices_duplicados.py
 
+#back_up
+/app.rar
+
 *.spec
 *.ico

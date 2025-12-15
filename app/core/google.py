@@ -1,6 +1,7 @@
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys  # Import necessário para o ENTER
 
 from utils import logger
 
@@ -60,17 +61,28 @@ class GoogleMapsAuto:
             logger.error(f"Erro ao localizar campo de busca: {e}")
             return
 
-        # Clica no botão pesquisar
+        # Aperta Enter para pesquisar (mais robusto pois não depende de modificações na interface do site)
         try:
-            search_button = self.wait.until(
-                EC.element_to_be_clickable((By.ID, "searchbox-searchbutton"))
-            )
-            self._click(search_button)
-            logger.info("Clique no botão pesquisar")
+            search_input.send_keys(Keys.ENTER)
+            logger.info("Busca disparada via tecla ENTER")
             time.sleep(5)
         except Exception as e:
-            logger.error(f"Erro ao clicar no botão pesquisar: {e}")
+            logger.error(f"Erro ao enviar a tecla ENTER  para disparar a busca: {e}")
             return
+
+        # SELEÇÃO DO RESULTADO (Garante o Pinpoint e o Painel Lateral)
+        try:
+            # Tenta encontrar links de resultados na lista (classe comum hfpxzc) ou o container de sugestões.
+            resultados = self.driver.find_elements(By.CSS_SELECTOR, "a.hfpxzc, [role='article'] a")
+            
+            if resultados:
+                logger.info(f"Múltiplos resultados encontrados ({len(resultados)}). Clicando no primeiro para fixar local.")
+                self._click(resultados[0])
+                time.sleep(4) # Espera carregar o painel lateral do local específico
+            else:
+                logger.info("Nenhuma lista detectada. O Maps parece ter ido direto para o ponto.")
+        except Exception as e:
+            logger.warning(f"Erro ao tentar selecionar da lista de resultados: {e}")
 
         # Clica no botão de camada (satélite)
         try:
@@ -102,6 +114,7 @@ class GoogleMapsAuto:
             logger.info("Street View ativado")
             time.sleep(5)
         except Exception as e:
+            input ("INPUT DE DEBUG. APERTE ENTER PARA CONTINUAR")
             logger.warning(f"Não foi possível clicar no Street View: {e}")
             return
 

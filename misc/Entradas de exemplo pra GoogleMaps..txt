@@ -1,0 +1,18 @@
+Entradas de exemplo pra GoogleMaps.executar()
+
+
+INDICE = "959018 007 0016"
+    DADOS_SISCTM = {
+        'iptu_ctm_geo_area': '762,16 m2', 
+        'iptu_ctm_geo_area_terreno': '1.037', 
+        'endereco_ctmgeo': 'RUA COPO DE LEITE, 780 - Belo Horizonte - MG, 31746030', 
+        'lote_cp_ativo_area_informada': '1.189'
+    }
+    DADOS_PB = {
+        'exercicio': '2025', 
+        'patrimonio': 'COMUM', 
+        'endereco_imovel': 'RUA COPO DE LEITE, 780 - FREI LEOPOLDO - 31746-030 - BELO HORIZONTE - MG', 
+        'area_construida': '551.11', 
+        'matricula_registro': '10768', 
+        'cartorio': '16.740.367/0001-81 - BELO HORIZONTE CARTORIO DO QUINTO OFICIO DE NOTAS'
+    }

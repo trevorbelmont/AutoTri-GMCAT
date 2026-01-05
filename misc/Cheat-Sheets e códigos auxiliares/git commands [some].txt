@@ -1,0 +1,27 @@
+
+Criar branches e migrar pra elas
+
+	git checkout -b <nome da branch>      	// funciona mas foi substituído por " switch -c " ???
+	git switch <nome da branc>		// autoexplicativo
+
+checar branch
+	
+	git branch
+
+
+
+
+	git push -u origin sandbox      	// o '-u' (--set-upstream) liga meu branch local à um branch homônimo no repo remoto
+
+
+
+
+Ambiente virtual em python [venv]:
+
+python3 -m venv venv  		// cria virtual envirionment
+	
+source venv/bin/activate	// ativa o ambient virtual da pasta "venv" (ou outro nome dado)
+
+deactivate   			// pra sair 
+
+pip install <nome>  		// Instala biblioteca, módulo ou etc no ambiente python?

@@ -1,0 +1,41 @@
+sudo apt update -y
+sudo apt install gnupg2 software-properties-common apt-transport-https curl -y
+
+curl -sSL https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+
+sudo add-apt-repository "deb [arch=amd64] https://packages.microsoft.com/repos/vscode stable main" -y
+
+sudo apt update
+sudo apt install code -y
+
+sudo apt-get install g++
+
+
+
+
+
+// git commit no code não no vim:
+git config --global core.editor "code --wait"
+
+// Instruções do git
+https://docs.github.com/pt/migrations/importing-source-code/using-the-command-line-to-import-source-code/adding-locally-hosted-code-to-github#adding-a-local-repository-to-github-using-git
+
+git init
+git add -A
+git commit -m
+git remote add origin <url>
+git remote -v
+git push --set-upstream origin main
+
+
+
+
+//stop android arcvm container
+vmc stop arcvm
+
+installar .deb ->  usar "dpkg -i" (checar o -i )
+
+flatpak (subsystem para instalar apps no debian. ex: firefox)
+
+grep -Rn "texto pra buscar nos arquivos da subpasta" // 
+grep "string" * // procura a string apenas na pasta (sem recursividade)

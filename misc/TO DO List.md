@@ -1,0 +1,3 @@
+* Padronizar os argumentos da classe de interface (app/pipeline/interface/base.py) para dar conta de todas as classes de serviço (em app/pipeline/sistemas.py)
+
+* Retirar as implementações repetitivas do método _click() em todos os bot-cores (todos os módulos em app/core/) e levar essa implementação para a classe base ou para um método utilitário - para diminuir repetição de código e adequar melhor ao SOLID.

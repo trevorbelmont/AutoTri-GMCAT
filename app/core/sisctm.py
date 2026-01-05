@@ -31,7 +31,7 @@ class SisctmAuto:
         url: str,
         usuario: str,
         senha: str,
-        pasta_download: str, # <--- TYPE HINT: str
+        pasta_download: str,
         timeout: int = 10,
     ):
         self.driver = driver
@@ -42,7 +42,7 @@ class SisctmAuto:
         # WebDriverWait é instanciado aqui e usado como self.wait
         self.wait = WebDriverWait(self.driver, timeout=timeout) 
 
-    def _click(self, element) -> None: # <--- TYPE HINT: -> None
+    def _click(self, element) -> None:
         """Tenta clicar diretamente, se falhar usa JavaScript."""
         try:
             element.click()
@@ -72,8 +72,9 @@ class SisctmAuto:
             )
             logger.info("Campo de usuário preenchido via JS")
 
-            # Preenche senha via JS
+            
             campo_senha = self.driver.find_element(By.ID, "password")
+            # Preenche senha via JS
             self.driver.execute_script(
                 "arguments[0].value = arguments[1]; arguments[0].dispatchEvent(new Event('input'));",
                 campo_senha,
@@ -94,8 +95,14 @@ class SisctmAuto:
             logger.error("Erro no login do Keycloak PBH: %s", e)
             return False
 
-    def ativar_camadas(self, indice_cadastral: str) -> bool: # <--- TYPE HINT: str -> bool
-        """Navega pelo menu do sistema Sisctm PBH."""
+    def ativar_camadas(self, indice_cadastral: str) -> bool: 
+        """
+        Navega pelo menu do sistema, ativa camadas específicas (Endereço, Lote CP) 
+        e aplica o filtro pelo Índice Cadastral.
+
+        :param indice_cadastral: O índice do imóvel para busca e filtro.
+        :return: True se todas as camadas foram ativadas e o filtro aplicado com sucesso, False caso contrário.
+        """
        
         etapa = "início"
         try:
@@ -341,9 +348,12 @@ class SisctmAuto:
             )
             return False
 
-    def _prints_aereo(self) -> None: # <--- TYPE HINT: -> None
+    def _prints_aereo(self) -> None: 
         """
-        Realiza captura de tela.
+        Realiza a captura de tela do mapa em duas visualizações: Vetorial e Ortofoto.
+        Salva os arquivos 'CTM_Aereo.png' e 'CTM_Orto.png' na pasta de download definida.
+        
+        :return: None.
         """
         
         # Print AEREO CTM
@@ -385,7 +395,7 @@ class SisctmAuto:
 
         return
 
-    def _clique_centro_mapa(self) -> None: # <--- TYPE HINT: -> None
+    def _clique_centro_mapa(self) -> None:
         """
         Clica no centro do mapa (elemento canva).
         """
@@ -412,11 +422,18 @@ class SisctmAuto:
         except Exception as e:
             logger.error(f"Erro inesperado ao clicar no mapa: {e}")
 
-    def capturar_areas(self) -> Dict[str, Optional[str]]: # <--- TYPE HINT: -> Dict[str, Optional[str]]
+    def capturar_areas(self) -> Dict[str, Optional[str]]:
         """
-        Captura dados das tabelas à esquerda da página.
+        Captura dados tabulares do painel lateral após a seleção do lote.
+        
+        :return: Dicionário contendo os dados extraídos:
+                 - 'iptu_ctm_geo_area': Área do IPTU.
+                 - 'iptu_ctm_geo_area_terreno': Área do terreno.
+                 - 'endereco_ctmgeo': Endereço formatado completo.
+                 - 'lote_cp_ativo_area_informada': Área informada do loteamento.
+                 Retorna dicionário vazio em caso de erro crítico.
         """
-        resultado: Dict[str, Optional[str]] = {} # <--- TYPE HINT: Variável de Retorno
+        resultado: Dict[str, Optional[str]] = {} # Dicionário que será retornado
         
         # O seletor da interface atualizada (resolve o problema de captura de áreas falhando)
         PAINEL_SELETOR = "#q-app > div > div.q-drawer-container > aside > div > div.fit.row.no-scroll > div.col.bg-white > div > div.col.relative-position > div"
@@ -432,7 +449,7 @@ class SisctmAuto:
             
 
             # Função auxiliar para ativar item
-            def ativar_item(nome_item: str) -> Optional[object]: # <--- TYPE HINT: str -> Optional[object]
+            def ativar_item(nome_item: str) -> Optional[object]:  # str -> Optional[object]
                 try:
                     item = painel.find_element(
                         By.XPATH,

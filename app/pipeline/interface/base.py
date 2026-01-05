@@ -5,6 +5,8 @@ from abc import ABC, abstractmethod
 # Todo bot que herde de SistemaAutomação deve ter pelo menos o método executar(...) implementado com essa assinatura de argumentos
 # - a definição do método pode diferir de bot para bot
 class SistemaAutomacao(ABC):
+    # TODO: Padronizar os parâmetros da interface executar para contemplar todas as classes definidas em app/pipeline/sistemas.py 
+    # (GoogleMaps usa mais parâmetros que o definido aqui.) Princípio da Substituição de Liskov
     @abstractmethod # Este decorator, aplicado ao método executar(...) força que qualquer classe filha defina seu próprio método executar
     def executar(self, indice, credenciais, pasta_indice):
         """Executa coleta de dados e retorna os resultados do sistema"""

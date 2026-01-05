@@ -155,6 +155,7 @@ class Sisctm(SistemaAutomacao):
 Esta é a última etapa de automação. A classe não retorna nada e não requer credenciais. Seu papel é orquestrar os dados dos bots anteriores, encontrar o endereço mais confiável, 
 e injetá-lo no bot de automação real, GoogleMapsAuto (em app/core/google.py), para obter documentação visual (prints de mapa e fachada). '''
 class GoogleMaps(SistemaAutomacao):
+    # TODO: A definição do método executar nessa classe tem mais parâmetros do que na classe de interface. Padronizar.
     # Define o método legado do contrato. Desta vez não são necessárias credenciais mas dados de endereço
     def executar(self, indice, dados_sisctm, dados_pb, pasta_indice):
         # bloco executado se pelo menos uma das automações anteriores, Sisctm ou Siatu, foi bem sucedida. Usa os dados retornados pelas funções.

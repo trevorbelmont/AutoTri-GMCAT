@@ -6,14 +6,14 @@
 Utilizadas com `#` para organizar o fluxo de trabalho. As IDEs costumam colorir estas tags automaticamente.
 
 ```python
-# TODO: Implementar a integração com a API de Geolocalização.
-# FIXME: Resolver o vazamento de memória quando a lista de usuários excede 10k itens.
-# XXX: Esta função é ineficiente (O(n²)), mas foi a única que funcionou no prazo.
-# HACK: Forçando o tipo da variável para string para evitar erro no banco legatário.
-# NOTE: O cálculo de impostos utiliza a tabela SELIC de 2024.
-# BUG: Reportado travamento em sistemas MacOS; causa ainda não identificada.
-# REVIEW: Verificar com o time de Segurança se este endpoint precisa de dupla autenticação.
-
+# TODO: funcionalidade pendente ou tarefa a ser realizada.
+# FIXME: código quebrado que necessita de correção urgente.
+# XXX: lógica problemática, ineficiente ou que requer atenção extra.
+# HACK: solução temporária, técnica não convencional ou "gambiarra".
+# NOTE: explicação sobre o raciocínio ou decisão técnica adotada.
+# BUG: registro de um erro conhecido identificado neste trecho.
+# REVIEW: pedido de revisão ou segunda opinião sobre a lógica.
+# DEPRECATED: alerta de código obsoleto que será removido no futuro.
 ```
 
 ### 2. Docstrings (Documentação Estruturada)

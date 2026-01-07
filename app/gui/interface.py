@@ -23,14 +23,16 @@ class InterfaceApp:
         """Define todo o layout e widgets da janela."""
 
         # --- Configuração de Responsividade das Colunads da Interface ---
-            # Coluna 0 (Labels):    Peso 0: Tamanho fixo, não cresce.
-            # Coluna 1 (Inputs):    Peso 1 : Cresce e ocupa todo o espaço horizontal sobrando)
-            # NOTE: na definição    dos grids dos tk.Labels(...).grid(...) e tk.Entry().grid(...), 
-            # usaremos stick="w" (West/Esquerda) e stick="e" (East/Direita) para "colar" os widgets nas margens.
-        self.root.grid_columnconfigure(0, weight=0)
-        self.root.grid_columnconfigure(1, weight=1)
-            # Linha 10 (LOG):       Peso 1: É a última linha. Se ajusta à margem Sul.
-        self.root.grid_rowconfigure(10, weight=1)
+        self.root.geometry("550x550") 
+        self.root.minsize(500, 400)   
+            
+        self.root.grid_columnconfigure(0, weight=0)     # Coluna 0 (Labels):    Peso 0: Tamanho fixo, não cresce.
+        self.root.grid_columnconfigure(1, weight=1)     # Coluna 1 (Inputs):    Peso 1 : Cresce e ocupa todo o espaço horizontal sobrando)
+            
+        self.root.grid_rowconfigure(10, weight=1)       # Linha 10 (LOG):       Peso 1: É a última linha. Se ajusta à margem Sul.
+        
+        # NOTE: Na definição dos grids dos tk.Labels(...).grid(...) e tk.Entry().grid(...) e etc... 
+        # usaremos stick="w" (West/Esquerda) e stick="e" (East/Direita) para "colar" os widgets nas margens.
 
         # --- Credenciais ---
         '''     >>> Widgets: tkinter.Label(...) e tkinter.Entry(...) - Elementos da tkinter padrão:
@@ -66,12 +68,21 @@ class InterfaceApp:
         ttk.Separator(self.root, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky="ew", pady=2)
 
         # --- Protocolos ---
-        # Usamos 'columnspan=2' para que o label (maior) ocupe duas colunas.
+        '''     >>> Widget: tkinter.scrolledtext.ScrolledText() - Elemento NÃO NATIVO, presente no módulo tkinter.scrolledtext
+        Parâmetros Críticos:
+        - width=x, height=y: Definem o tamanho do campo (em caracteres).
+        - self.root: é o master (a que janela este widget pertence.) Neste caso self.root é a janela principal (e única).
+        !!! Como é um espaço para texto que será extraído mais tarde (não pode ser perdido),
+            atribuímos ele como uma variável do objeto self e depois posicionamos 
+            e renderizamos o widget com o .grid(...), NORMALMENTE.
+        '''
         tk.Label(self.root,
-                 text=  "Protocolo(s):\n(Separados por vírgula e sem espaço!)\n"
-                        "Ex. 7463527921,48302891,700675062505",
+                 text=  "Protocolo(s):\n"
+                        "(Ex. 7463527921,48302891,700675062505)",
                  justify="left",        #Justifica label à esquerda
-                 ).grid(row=5, column=0, stick="nw", padx=5, pady=0) 
+                 ).grid(row=5, column=0, stick="nw", padx=5, pady=0)
+        # wrap=tk.WORD : Define para que palavras (protocolos), separados por vírgula e espaço, 
+        # não sejam visual partidos no meio na quebra de linha.
         self.entry_protocolos = tk.scrolledtext.ScrolledText(self.root, height=4,  width=30, wrap=tk.WORD)
         self.entry_protocolos.grid(row=5, column=1, stick= "nsew", padx=5, pady=5)
 
@@ -81,7 +92,7 @@ class InterfaceApp:
 
         Parâmetros Críticos:
         - command=self._acao_confirmar: Passagem de Referência (Callback).
-          ATENÇÃO: Passamos o nome da função SEM parênteses '()'. 
+        !!! ATENÇÃO: Passamos o nome da função SEM parênteses '()'. 
           Se usássemos 'command=self.func()', o Python executaria a função IMEDIATAMENTE 
           durante a criação da janela, e atribuiria o retorno (None) ao botão.
           Queremos passar o endereço da função para ser chamada apenas no evento 'click'.
@@ -104,7 +115,7 @@ class InterfaceApp:
 
         # --- Log Area ---
         self.log_area = scrolledtext.ScrolledText(self.root, width=30, height=10, state="disabled")
-        self.log_area.grid(row=10, column=0, columnspan=2, pady=5, padx=5, sticky="nsew")
+        self.log_area.grid(row=10, column=0, columnspan=2, pady=10, padx=5, sticky="nsew")
 
     def _acao_confirmar(self):
         """Valida dados e inicia o processamento."""
@@ -113,11 +124,34 @@ class InterfaceApp:
             self.credenciais["senha"] = self.entry_senha.get()
             self.credenciais["usuario_sigede"] = self.entry_usuario_sigede.get()
             self.credenciais["senha_sigede"] = self.entry_senha_sigede.get()
-                     
-            raw_protocolos = self.entry_protocolos.get().split(",")
+
+            # ============= TRATAMENTO DO TEXTO NO CAMPO DE PROTOCOLOS (ScrolledText)=============
+            # ("1.0", "end-1c"): Pega todo o texto exceto o último caractere de quebra de linha (automaticamente adicionado pelo TKinter).
+            texto_bruto = self.entry_protocolos.get("1.0", "end-1c")
+            
+            # Normaliza: Transforma quebras de linha e espaços (eventualmente colocados pelo usuário ou automáticas) em vírgulas
+            texto_normalizado = texto_bruto.replace("\n", ",") # Troca 'ENTER' por vírgula -Permite que o usuário cole uma coluna do Excel ou digite com vírgulas
+            texto_normalizado = texto_normalizado.replace(" ", ",") # Troca Espaço por vírgula (mtos espaços viram muitas vírgulas mas não compromete a lista)
+            
+            # Cria a lista bruta separando as entradas pelas vírgulas da string normalizada acima (texto_normalizado)
+            raw_protocolos = texto_normalizado.split(",")
+            
+            # Limpa e filtra (Sua List Comprehension)
             self.protocolos.clear()
             self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()])
+            # SINTAX NOTE:  [ (p.strip()) for p in raw_protocolos if(p.strip()) ] : uma compreensão de lista (CONTRAÇAÕ DE FOR): com parênteses adicionais apenas para clareza dos campos
+            ''' O Loop (for p in raw_protocolos): "Para cada item (que chamaremos de p) dentro da lista raw_protocolos..."
+                O Filtro (if p.strip()): "...verifique se p.strip() é verdadeiro. (não vazio após o strip)
+                A Ação (strip()) - [no início]: Se passou no filtro, remove espaços em branco e add à lista.       
+            NOTE: self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()] )   NOTE: Equivale à:
+                    for p in raw_protocolos:
+                    if p.strip():          # Se não for vazio
+                    protocols.append(p.strip()) # Limpa e adiciona
+            '''
+            # Registra no log (e no arquivo) a lista de protocolos (limpada) que será processada
+            logger.info(f"Protocolos identificados ({len(self.protocolos)}): {self.protocolos}")
 
+            # Checa se as entradas estão preenchidas (não checa validade de credenciais - que é feita em tempo de execução)
             self._validar_entradas()
 
             # Prepara UI para execução

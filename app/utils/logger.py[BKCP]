@@ -1,7 +1,6 @@
 import sys
 from pathlib import Path
 import logging
-import queue  # Importa fila
 
 # Detecta se está rodando via PyInstaller
 if getattr(sys, "frozen", False):
@@ -18,21 +17,7 @@ LOG_FILE = "Detalhes da Triagem.txt"
 log_file = ROOT / LOG_FILE
 log_file.parent.mkdir(parents=True, exist_ok=True)
 
-
-# Fila com as novas mensagens do log à serem adicionadas ao logger (e que a interface "escuta")
-log_queue = queue.Queue()
-
-# Definimos uma classe QueueHandler para manusear nossa que
-class QueueHandler(logging.Handler):
-    """Envia registros de log para uma fila thread-safe."""
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-            log_queue.put(msg)
-        except Exception:
-            self.handleError(record)
-
-# Formatter para o console e GUI (limpo, sem milissegundos)
+# Formatter para o console (limpo, sem milissegundos)
 console_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
 # Formatter para o arquivo (com timestamp completo)
@@ -45,13 +30,8 @@ console_handler.setFormatter(console_formatter)
 file_handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
 file_handler.setFormatter(file_formatter)
 
-# Handler da Fila (Usamos o formato do console para ficar limpo na tela)
-queue_handler = QueueHandler()
-queue_handler.setFormatter(console_formatter)
-
 # Logger central
 logger = logging.getLogger("triagem_logger")
 logger.setLevel(logging.INFO)
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
-logger.addHandler(queue_handler) # Adicionamos a GUI como um destino também.

@@ -2,7 +2,8 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 import threading
 import os
-from utils import logger
+from utils import logger, log_queue
+
 
 class InterfaceApp:
     def __init__(self, processar_callback):
@@ -18,6 +19,9 @@ class InterfaceApp:
         # Inicializa a Interface
         self._configurar_widgets()
         self._iniciar_leitura_logs()
+
+
+#==================================== INÍCIO DA DEFINIÇÃO DE LAYOUT =================================================================
 
     def _configurar_widgets(self):
         """Define todo o layout e widgets da janela."""
@@ -67,7 +71,7 @@ class InterfaceApp:
         # sticky="ew": Estica de ponta a ponta
         ttk.Separator(self.root, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky="ew", pady=2)
 
-        # --- Protocolos ---
+        # --------------------------------------- Protocolos ---------------------------------------
         '''     >>> Widget: tkinter.scrolledtext.ScrolledText() - Elemento NÃO NATIVO, presente no módulo tkinter.scrolledtext
         Parâmetros Críticos:
         - width=x, height=y: Definem o tamanho do campo (em caracteres).
@@ -77,8 +81,8 @@ class InterfaceApp:
             e renderizamos o widget com o .grid(...), NORMALMENTE.
         '''
         tk.Label(self.root,
-                 text=  "Protocolo(s):\n"
-                        "(Ex. 7463527921,48302891,700675062505)",
+                 text=  "Protocolo(s):\n(Separados por ESPAÇO ou VÍRGULAS)\n\n"
+                        "Ex. 7463527921,48302891,700675062505)",
                  justify="left",        #Justifica label à esquerda
                  ).grid(row=5, column=0, stick="nw", padx=5, pady=0)
         # wrap=tk.WORD : Define para que palavras (protocolos), separados por vírgula e espaço, 
@@ -87,7 +91,7 @@ class InterfaceApp:
         self.entry_protocolos.grid(row=5, column=1, stick= "nsew", padx=5, pady=5)
 
 
-        # --- Botões ---
+        # --------------------------------------- Botões ---------------------------------------
         '''     >>> Widget: tkinter.Button() - Elemento interativo padrão:
 
         Parâmetros Críticos:
@@ -116,6 +120,9 @@ class InterfaceApp:
         # --- Log Area ---
         self.log_area = scrolledtext.ScrolledText(self.root, width=30, height=10, state="disabled")
         self.log_area.grid(row=10, column=0, columnspan=2, pady=10, padx=5, sticky="nsew")
+
+#====================================  FIM DA DEFINIÇÃO DE LAYOUT =================================================================
+
 
     def _acao_confirmar(self):
         """Valida dados e inicia o processamento."""
@@ -224,32 +231,35 @@ class InterfaceApp:
         self.atualizar_logs()
 
     def atualizar_logs(self):
-        """Lê o arquivo de log e atualiza a área de texto (Polling)."""
-        # Mantivemos a lógica original de ler arquivo, mas encapsulada.
+        """Consome a fila de logs com Smart Auto-Scroll."""
         try:
-            if os.path.exists("Detalhes da Triagem.txt"):
-                with open("Detalhes da Triagem.txt", "r", encoding="utf-8") as f:
-                    conteudo = f.read()
-                
-                self.log_area.config(state="normal")
-                
-                # Verifica se o scroll está no final antes de atualizar
-                pos_atual = self.log_area.yview()
-                esta_no_final = pos_atual[1] == 1.0
+            # Se não tem nada, nem perde tempo processando lógica de UI
+            if log_queue.empty():
+                return 
 
-                self.log_area.delete("1.0", tk.END)
-                self.log_area.insert(tk.END, conteudo)
-                
-                if esta_no_final:
-                    self.log_area.see(tk.END)
-                
-                self.log_area.config(state="disabled")
-        except Exception as e:
-            print(f"Erro ao ler log: {e}")
+            # Checa se o usuário está com a Scroll-Bar do logger no final (Smart Scroll)
+            # .yview() retorna a tupla, topo, base), da parte visualizada pelo ScrolledText. 
+            # Domínio: [0.0 , 1.0].  Se base == 1.0, está no fim.
+            posicao_atual = self.log_area.yview()
+            estava_no_fim = (posicao_atual[1] == 1.0) 
+            self.log_area.config(state="normal")
+            
+            # Insere TODAS as mensagens pendentes de uma vez (Batch update)
+            while not log_queue.empty():
+                msg = log_queue.get_nowait()
+                self.log_area.insert(tk.END, msg + "\n")
+            
+            # Só rola a tela se o usuário já estava acompanhando o final
+            if estava_no_fim:
+                self.log_area.see(tk.END)
+            
+            self.log_area.config(state="disabled")
+
+        except Exception:
+            pass
         finally:
-            # Re-ageda a própria função para rodar em 1000ms
-            self.root.after(1000, self.atualizar_logs)
-
+            # Agenda a próxima verificação
+            self.root.after(100, self.atualizar_logs)
 
 # --- Função Wrapper para manter compatibilidade com main.py ---
 def iniciar_interface(processar_callback):

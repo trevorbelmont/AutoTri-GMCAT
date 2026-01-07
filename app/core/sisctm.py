@@ -32,7 +32,8 @@ class SisctmAuto:
         usuario: str,
         senha: str,
         pasta_download: str,
-        timeout: int = 10,
+        timeout: int = 10,          # timeout é definido com valor padrão (se não definido na instanciação do objeto)
+        checar_popup: bool = True,  # checar_popup também possui valor padrão (se não definido na instanciação)
     ):
         self.driver = driver
         self.url = url
@@ -40,7 +41,9 @@ class SisctmAuto:
         self.senha = senha
         self.pasta_download = pasta_download
         # WebDriverWait é instanciado aqui e usado como self.wait
-        self.wait = WebDriverWait(self.driver, timeout=timeout) 
+        self.wait = WebDriverWait(self.driver, timeout=timeout)
+        self.checar_popup = checar_popup 
+
 
     def _click(self, element) -> None:
         """Tenta clicar diretamente, se falhar usa JavaScript."""
@@ -48,6 +51,7 @@ class SisctmAuto:
             element.click()
         except Exception:
             self.driver.execute_script("arguments[0].click();", element)
+
 
     def login(self) -> bool:
         """Realiza login no Keycloak PBH em páginas Vue.js."""
@@ -87,8 +91,71 @@ class SisctmAuto:
             self.driver.execute_script("arguments[0].click();", btn_login)
             logger.info("Login realizado com sucesso")
 
-            time.sleep(10)
+            time.sleep(10)  # NOTE: o site tem animação e demora pra terminar de carregar,
+                            # mas ter uma forma mais rápida que um sleep de 10 sec fixo pode ser bom (não sei se tem)
 
+            # -----------------------------------------------------------
+            # NOTE: Bloco de tratamento da Pop-up "Notas de Versão" - Estratégia "Fail Fast"
+            # Se checar_popup estiver true, checa se a pop-up apareceu enquanto a página carregava.
+            # Timeout curto (3s) para não atrasar execuções.
+            # -----------------------------------------------------------
+
+        
+            '''NOTE: Após o login pode ocorrer problema do pop-up "Notas de Versão". 
+            É algo fácil de resolver manualmente, mas vamos automatizar (visto que alguns usuários não souberam resolver por si só.)
+                       
+            !!! A ROTINA ABAIXO SÓ ACONTECE SE A VARIÁVEL  'checar_popup' (que possui valor default) estiver definida no construtor !!!
+            
+            -  Essa rotina acontece depois do time.sleep() acima de 10 segs. O pop-up certamente já apareceu 
+            (geralmente é a primeira coisa a ser carregada).
+            - Aí procuramos o pop-up e fechamos, e se não apareceu, seguimos.      
+            
+            TODO: Garantir que, se a checagem de popup estiver true na triagem do primeiro protocolo, ela auto-desliga nas próximas triagens.
+            Isso elimina a perda de eficiência de 3 segundos caso o pop-up já tenha sido retirado na triagem anterior.
+            (Protocolos são geralmente triados em séries numa única execução do AutoTri).
+            '''
+            
+            if self.checar_popup:
+                try:
+
+                    # 1. Procura pelo Checkbox específico da pop-up (via aria-label, que é estável)
+                    # Define um timeout máximo de 3 segundos pra visibilidade do "Mostrar Novamente" checkbox no pop-up
+                    # NOTE: isso é mais uma dupla segurança - uma vez que já rolou 10 segs de sleep ao fim do login.
+                    checkbox_popup = WebDriverWait(self.driver, 3).until(   
+                        EC.visibility_of_element_located((
+                            By.XPATH, 
+                            "//div[@role='checkbox' and @aria-label='Não mostrar novamente']"
+                        ))
+                    )
+                    logger.info("Pop-up 'Notas da Versão' detectada. Iniciando tratamento...")
+                    
+                    # 2. Marcar "Não mostrar novamente" (se ainda não estiver marcado)
+                    is_checked = checkbox_popup.get_attribute("aria-checked")
+                    if is_checked == "false":
+                        self._click(checkbox_popup)
+                        logger.info("Opção 'Não mostrar novamente' marcada.")
+                        time.sleep(0.5) # Breve respiro para a animação do check
+                    
+                    # 3. Fechar a Pop-up - Busca o ícone 'close' visível.
+                    btn_fechar = self.driver.find_element(
+                        By.XPATH, 
+                        "//i[contains(@class, 'material-icons') and text()='close']"
+                    )
+                    self._click(btn_fechar)
+                                        
+                    # Espera a pop-up sumir visualmente para não bloquear o próximo clique
+                    WebDriverWait(self.driver, 2).until(
+                        EC.invisibility_of_element(checkbox_popup) #espera o elemento ficar "invisível" (não existe ou não está visível)
+                    )
+                    logger.info("Pop-up fechada com sucesso.")
+                   
+                except TimeoutException:
+                    # Se no time sleep de 3 segs não apareceu nada, assumimos que o caminho está livre
+                    logger.debug("Caminho livre: Nenhuma pop-up detectada (Fail Fast).")
+                except Exception as e:
+                    # Se der outro erro, logamos mas não paramos o fluxo (pode ser falso positivo)
+                    logger.warning(f"Aviso ao tentar tratar pop-up: {e}")
+            # -----------------------------------------------------------
             return True
 
         except Exception as e:
@@ -103,7 +170,7 @@ class SisctmAuto:
         :param indice_cadastral: O índice do imóvel para busca e filtro.
         :return: True se todas as camadas foram ativadas e o filtro aplicado com sucesso, False caso contrário.
         """
-       
+                
         etapa = "início"
         try:
             logger.info("Iniciando navegação pelo sistema SISCTM PBH")
@@ -122,7 +189,7 @@ class SisctmAuto:
             self._click(btn_menu)
             logger.info("Menu expandido com sucesso")
             time.sleep(1)
-
+            
             # Clica no item Fazenda
             etapa = "selecionar Fazenda"
             logger.debug("Localizando item 'Fazenda'...")
@@ -444,7 +511,7 @@ class SisctmAuto:
             
             # Espera até 10s (o timeout padrão) pelo elemento painel para resolver o NoSuchElementException
             painel = self.wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, PAINEL_SELETOR))
+                EC.presence_of_element_located((By.CSS_SELECTOR, PAINEL_SELETOR)) #EC = Expected Condition
             )
             
 

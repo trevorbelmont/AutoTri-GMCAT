@@ -1,7 +1,11 @@
 # Tkinter GUI Development [Cheat-Sheet & Reference]
-
 > **Foco:** Desenvolvimento de interfaces gráficas desktop em Python (bibloitoeca Nativa).
+
 > **Contexto:** Manutenção do `AutoTRI` (migração de script funcional para OOP).
+
+> **Link Documentação:** [Documentação TKINTER - PYTHON](https://docs.python.org/pt-br/3.12/library/tk.html)
+
+> **Sobre Fontes no TKinter**: [GeeksForGeeks - Com Exemplos](https://www.geeksforgeeks.org/python/how-to-change-the-tkinter-label-font-size/)
 
 ---
 
@@ -412,3 +416,96 @@ def fechar_seguro():
 root.protocol("WM_DELETE_WINDOW", fechar_seguro)
 
 ```
+---
+---
+# 8. Sobre Unidades de Medida no TKinter
+
+
+## 8.1. A "Regra de Ouro" (Texto vs. Gráfico)
+
+* **Se o Widget serve para exibir TEXTO** (`Label`, `Entry`, `Button`, `Text`):
+* As medidas (`width`, `height`) são em **CARACTERES** (média da largura da letra '0' na fonte atual).
+
+
+* **Se o Widget serve para LAYOUT ou IMAGEM** (`Frame`, `Canvas`, `Progressbar`, padding):
+* As medidas são em **PIXELS** de tela.
+
+
+
+---
+
+## 8.2. Análise Detalhada
+
+### A. Unidades de Texto (Caracteres)
+
+Usado em: `tk.Entry`, `tk.Label`, `tk.Button`, `tk.Text`, `scrolledtext.ScrolledText`.
+
+* **`width`:** Número de caracteres.
+* `width=30` no seu `Entry` significa: "Largo o suficiente para caberem aproximadamente 30 letras".
+* **Pegadinha:** Se você aumentar o tamanho da fonte (`font=("Arial", 20)`), o widget vai crescer em pixels, mesmo mantendo `width=30`, porque a letra ficou maior.
+
+
+* **`height`:** Número de linhas.
+* `height=5` no seu `ScrolledText` significa: "Alto o suficiente para mostrar 5 linhas de texto".
+* *Nota:* `tk.Entry` não tem `height` (é sempre 1 linha).
+
+
+
+### B. Unidades de Tela (Pixels)
+
+Usado em: `tk.Frame`, `tk.Canvas`, `ttk.Separator`, gerenciadores de geometria (`grid`, `pack`).
+
+* **`width` / `height`:** Tamanho exato em pixels.
+* Se você criar um `tk.Frame(width=100, height=100)`, ele será um quadrado de 100x100 pixels.
+
+
+* **`padx` / `pady`:** Espaçamento em pixels.
+* `padx=5` no `.grid()` significa "adicione 5 pixels de ar vazio nas laterais".
+
+
+
+### C. O Caso do `ttk.Progressbar`
+
+O `Progressbar` é um widget gráfico, não textual. Portanto, ele usa pixels.
+
+* **`length`:** É a medida do "comprimento" da barra (o lado longo).
+* `length=700` significa **700 pixels** fixos.
+* *Por que não width?* Porque se você mudar a orientação para `vertical`, o `length` vira a altura. O `width` no Progressbar (em alguns temas) define a "gordura" da barra.
+
+
+
+---
+
+## 8.3. Tabela de Referência Rápida
+
+| Parâmetro | Onde é usado? | Unidade de Medida |
+| --- | --- | --- |
+| **`width`** | `Entry`, `Label`, `Button`, `Text` | **Caracteres** (aprox. largura do '0') |
+| **`width`** | `Frame`, `Canvas`, `rectangles` | **Pixels** |
+| **`height`** | `Label`, `Text`, `Button` | **Linhas de Texto** |
+| **`height`** | `Frame`, `Canvas` | **Pixels** |
+| **`length`** | `ttk.Progressbar`, `ttk.Scale` | **Pixels** (comprimento da barra) |
+| **`padx` / `pady**` | `.grid()`, `.pack()`, widgets | **Pixels** (espaço em branco) |
+| **`wraplength`** | `Label` (para quebrar texto) | **Pixels** (apesar de ser um widget de texto!) |
+
+### 8.4. Como especificar unidades explicitamente (Avançado)
+
+O Tkinter aceita strings com sufixos para forçar uma unidade (Screen Units), embora seja raro usar isso em `Entry` ou `Text`.
+
+* `"10c"` = 10 Centímetros
+* `"10i"` = 10 Polegadas (Inches)
+* `"10p"` = 10 Pontos (Tipografia)
+
+**Exemplo:**
+
+```python
+# Força um Frame a ter 5 centímetros de largura
+frame = tk.Frame(root, width="5c", height="2c")
+
+```
+---
+### Na Interface do AutoTri
+
+* Os `Entry/Label (width=30)` são **30 caracteres**.
+* A  `Progressbar(length=700)` são **700 pixels**.
+* Os `padx=5` são **5 pixels**.

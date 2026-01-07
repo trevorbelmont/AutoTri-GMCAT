@@ -4,154 +4,186 @@ import threading
 import os
 from utils import logger
 
+class InterfaceApp:
+    def __init__(self, processar_callback):
+        self.processar_callback = processar_callback
+        self.root = tk.Tk()
+        self.root.title("Automação de Triagem")
+        
+        # Estado da Aplicação
+        self.credenciais = {}
+        self.protocolos = []
+        self.cancelar_event = threading.Event()
+        
+        # Inicializa a Interface
+        self._configurar_widgets()
+        self._iniciar_leitura_logs()
 
-def iniciar_interface(processar_callback):
-    credenciais = {}
-    protocolos = []
-    cancelar_event = threading.Event()
+    def _configurar_widgets(self):
+        """Define todo o layout e widgets da janela."""
+        # --- Credenciais ---
+        '''Cria uma Label na janela principal (self.root) com  texto "Usuário SIGEDE". Sem o grid (...) a label existe apenas na RAM, mas não é desenhada
+        Grid(): posiciona e renderiza a label na devida posição; stick = "w" (west): alinhamento a Oeste; padx/padx = respiro (pra não colar nas bordas)'''
+        tk.Label(self.root, text="Usuário SIGEDE:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
+        
+        '''Cria um campo de entrada na janela principal (self.root) de largura 30.'''
+        self.entry_usuario_sigede = tk.Entry(self.root, width=30)
+        '''Posiciona e desenha o campo de entrada usando .grid(...).... segue similarmente'''
+        self.entry_usuario_sigede.grid(row=0, column=1, padx=5, pady=5)
 
-    def confirmar():
+        tk.Label(self.root, text="Senha SIGEDE:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
+        self.entry_senha_sigede = tk.Entry(self.root, show="*", width=30)
+        self.entry_senha_sigede.grid(row=1, column=1, padx=5, pady=5)
+        
+        tk.Label(self.root, text="Usuário SIATU:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
+        self.entry_usuario = tk.Entry(self.root, width = 30)
+        self.entry_usuario.grid(row=2, column=1, padx=5, pady=5)
+
+        tk.Label(self.root, text="Senha SIATU:").grid(row=3, column=0, sticky="w", padx=5, pady=5)
+        self.entry_senha = tk.Entry(self.root, show="*", width=30)
+        self.entry_senha.grid(row=3, column=1, padx=5, pady=5)
+
+        # --- Protocolos ---
+        tk.Label(self.root, text="Protocolo(s) (separados por vírgula e sem espaço - Ex. 7463527921,48302891,2611172):").grid(row=4, column=0, padx=5, pady=5)
+        self.entry_protocolos = tk.Entry(self.root, width=50)
+        self.entry_protocolos.grid(row=4, column=1, padx=5, pady=5)
+
+        # --- Botões ---
+        self.btn_confirmar = tk.Button(self.root, text="Iniciar", command=self._acao_confirmar)
+        self.btn_confirmar.grid(row=5, column=0, sticky="we", padx=5, pady=5)
+
+        self.btn_cancelar = tk.Button(self.root, text="Cancelar", command=self._acao_cancelar, state="disabled")
+        self.btn_cancelar.grid(row=5, column=1, sticky="we", padx=5, pady=5)
+
+        # --- Status e Progresso ---
+        self.status_label = tk.Label(self.root, text="Aguardando entrada...")
+        self.status_label.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
+
+        self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=700, mode="determinate")
+        self.progress_bar.grid(row=7, column=0, columnspan=2, pady=5, padx=5)
+
+        # --- Log Area ---
+        self.log_area = scrolledtext.ScrolledText(self.root, width=90, height=20, state="disabled")
+        self.log_area.grid(row=8, column=0, columnspan=2, pady=5, padx=5, sticky="nsew")
+
+    def _acao_confirmar(self):
+        """Valida dados e inicia o processamento."""
         try:
-            credenciais["usuario"] = entry_usuario.get()
-            credenciais["senha"] = entry_senha.get()
-            credenciais["usuario_sigede"] = entry_usuario_sigede.get()
-            credenciais["senha_sigede"] = entry_senha_sigede.get()
-            lista = entry_protocolos.get().split(",")
-            protocolos.clear()
-            protocolos.extend([i.strip() for i in lista if i.strip() != ""])
+            self.credenciais["usuario"] = self.entry_usuario.get()
+            self.credenciais["senha"] = self.entry_senha.get()
+            self.credenciais["usuario_sigede"] = self.entry_usuario_sigede.get()
+            self.credenciais["senha_sigede"] = self.entry_senha_sigede.get()
+                     
+            raw_protocolos = self.entry_protocolos.get().split(",")
+            self.protocolos.clear()
+            self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()])
 
-            if not credenciais["usuario"] or not credenciais["senha"]:
-                raise ValueError("Usuário e senha do SIATU são obrigatórios")
-            if not credenciais["usuario_sigede"] or not credenciais["senha_sigede"]:
-                raise ValueError("Usuário e senha do SIGEDE são obrigatórios")
-            if not protocolos:
-                raise ValueError("Informe ao menos um protocolo.")
+            self._validar_entradas()
 
-            # Desabilita entradas e botão
-            btn_confirmar.config(state="disabled")
-            entry_protocolos.config(state="disabled")
-            btn_cancelar.config(state="normal")
-            status_label.config(text="Processando...")
-            cancelar_event.clear()
+            # Prepara UI para execução
+            self._alternar_estado_ui(processando=True)
+            self.cancelar_event.clear()
+            self.progress_bar["maximum"] = len(self.protocolos)
+            self.progress_bar["value"] = 0
 
-            # Configura barra de progresso
-            progress_bar["maximum"] = len(protocolos)
-            progress_bar["value"] = 0
+            # Inicia Thread
+            threading.Thread(target=self._executar_thread, daemon=True).start()
 
-            # Executa em thread separada
-            threading.Thread(
-                target=lambda: processar_callback(
-                    credenciais.copy(),
-                    protocolos.copy(),
-                    cancelar_event,
-                    atualizar_progresso,
-                ),
-                daemon=True,
-            ).start()
+        except ValueError as e:
+            messagebox.showerror("Erro de Validação", str(e))
 
+    def _validar_entradas(self):
+        if not self.credenciais["usuario"] or not self.credenciais["senha"]:
+            raise ValueError("Usuário e senha do SIATU são obrigatórios")
+        if not self.credenciais["usuario_sigede"] or not self.credenciais["senha_sigede"]:
+            raise ValueError("Usuário e senha do SIGEDE são obrigatórios")
+        if not self.protocolos:
+            raise ValueError("Informe ao menos um protocolo.")
+
+    def _acao_cancelar(self):
+        """Sinaliza o cancelamento."""
+        if messagebox.askyesno("Confirmar", "Deseja realmente cancelar?"):
+            self.cancelar_event.set()
+            self.status_label.config(text="Cancelando... aguarde.")
+            self.btn_cancelar.config(state="disabled")
+
+    def _executar_thread(self):
+        """Wrapper para rodar o callback na thread."""
+        try:
+            self.processar_callback(
+                self.credenciais,
+                self.protocolos,
+                self.cancelar_event,
+                self.atualizar_progresso
+            )
         except Exception as e:
-            logger.error(f"Erro na interface ao confirmar: {e}")
-            messagebox.showerror("Erro", str(e))
+            logger.error(f"Erro na thread de processamento: {e}")
+        finally:
+            # Garante que o reset da UI aconteça na thread principal do Tkinter
+            self.root.after(0, self.resetar_interface)
 
-    def cancelar():
-        cancelar_event.set()
-        status_label.config(text="Cancelando processo...")
+    def atualizar_progresso(self, valor):
+        """Callback passado para o processamento atualizar a barra."""
+        self.progress_bar["value"] = valor
+        self.root.update_idletasks()
 
-    def resetar_interface():
-        entry_protocolos.config(state="normal")
-        entry_protocolos.delete(0, tk.END)
-        btn_confirmar.config(state="normal")
-        btn_cancelar.config(state="disabled")
-        progress_bar["value"] = 0
-        status_label.config(text="Pronto para novo processamento.")
+    def resetar_interface(self):
+        """Restaura o estado inicial da UI após o fim do processo."""
+        self.status_label.config(text="Processamento finalizado.")
+        self._alternar_estado_ui(processando=False)
+        messagebox.showinfo("Concluído", "O processamento foi finalizado.")
 
-    def atualizar_progresso(valor):
-        progress_bar["value"] = valor
+    def _alternar_estado_ui(self, processando: bool):
+        """Habilita ou desabilita widgets baseado no estado."""
+        state_input = "disabled" if processando else "normal"
+        state_cancel = "normal" if processando else "disabled"
+        
+        self.btn_confirmar.config(state=state_input)
+        self.entry_protocolos.config(state=state_input)
+        self.btn_cancelar.config(state=state_cancel)
+        
+        if processando:
+            self.status_label.config(text="Processando...")
 
-    def on_fechar():
-        if messagebox.askokcancel("Sair", "Deseja realmente encerrar o processamento?"):
-            cancelar_event.set()
-            root.destroy()
+    def _iniciar_leitura_logs(self):
+        """Inicia o loop de atualização de logs."""
+        self.atualizar_logs()
 
-    # Interface
-    root = tk.Tk()
-    root.title("Triagem de Processos")
-    root.geometry("800x600")
-
-    root.protocol("WM_DELETE_WINDOW", on_fechar)
-
-    tk.Label(root, text="Usuário SIGEDE:").grid(
-        row=0, column=0, sticky="w", padx=5, pady=5
-    )
-    entry_usuario_sigede = tk.Entry(root, width=30)
-    entry_usuario_sigede.grid(row=0, column=1, padx=5, pady=5)
-
-    tk.Label(root, text="Senha SIGEDE:").grid(
-        row=1, column=0, sticky="w", padx=5, pady=5
-    )
-    entry_senha_sigede = tk.Entry(root, show="*", width=30)
-    entry_senha_sigede.grid(row=1, column=1, padx=5, pady=5)
-
-    tk.Label(root, text="Usuário SIATU:").grid(
-        row=2, column=0, sticky="w", padx=5, pady=5
-    )
-    entry_usuario = tk.Entry(root, width=30)
-    entry_usuario.grid(row=2, column=1, padx=5, pady=5)
-
-    tk.Label(root, text="Senha SIATU:").grid(
-        row=3, column=0, sticky="w", padx=5, pady=5
-    )
-    entry_senha = tk.Entry(root, show="*", width=30)
-    entry_senha.grid(row=3, column=1, padx=5, pady=5)
-
-    tk.Label(
-        root,
-        text="Protocolo(s) (separados por vírgula e sem espaço - Ex. 7463527921,48302891,2611172):",
-    ).grid(row=4, column=0, sticky="w", padx=5, pady=5)
-    entry_protocolos = tk.Entry(root, width=50)
-    entry_protocolos.grid(row=4, column=1, padx=5, pady=5)
-
-    btn_confirmar = tk.Button(root, text="Confirmar", command=confirmar)
-    btn_confirmar.grid(row=5, column=0, sticky="we", padx=5, pady=5)
-
-    btn_cancelar = tk.Button(
-        root, text="Cancelar", command=cancelar, fg="red", state="disabled"
-    )
-    btn_cancelar.grid(row=5, column=1, sticky="we", padx=5, pady=5)
-
-    status_label = tk.Label(root, text="Aguardando entrada...")
-    status_label.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
-
-    progress_bar = ttk.Progressbar(
-        root, orient="horizontal", length=700, mode="determinate"
-    )
-    progress_bar.grid(row=7, column=0, columnspan=2, pady=5, padx=5)
-
-    log_area = scrolledtext.ScrolledText(root, width=90, height=20, state="disabled")
-    log_area.grid(row=8, column=0, columnspan=2, pady=5, padx=5, sticky="nsew")
-
-    # Ajuste para não perder a rolagem (log area)
-    def atualizar_logs():
+    def atualizar_logs(self):
+        """Lê o arquivo de log e atualiza a área de texto (Polling)."""
+        # Mantivemos a lógica original de ler arquivo, mas encapsulada.
         try:
             if os.path.exists("Detalhes da Triagem.txt"):
                 with open("Detalhes da Triagem.txt", "r", encoding="utf-8") as f:
                     conteudo = f.read()
-                log_area.config(state="normal")
-
-                # Checa se o usuário está no final
-                pos_atual = log_area.yview()
+                
+                self.log_area.config(state="normal")
+                
+                # Verifica se o scroll está no final antes de atualizar
+                pos_atual = self.log_area.yview()
                 esta_no_final = pos_atual[1] == 1.0
 
-                log_area.delete("1.0", tk.END)
-                log_area.insert(tk.END, conteudo)
-                log_area.config(state="disabled")
-
-                # Mantém scroll no final somente se estava no final
+                self.log_area.delete("1.0", tk.END)
+                self.log_area.insert(tk.END, conteudo)
+                
                 if esta_no_final:
-                    log_area.see(tk.END)
+                    self.log_area.see(tk.END)
+                
+                self.log_area.config(state="disabled")
         except Exception as e:
-            logger.error(f"Erro ao atualizar logs: {e}")
-        root.after(2000, atualizar_logs)
+            print(f"Erro ao ler log: {e}")
+        finally:
+            # Re-ageda a própria função para rodar em 1000ms
+            self.root.after(1000, self.atualizar_logs)
 
-    atualizar_logs()
-    return root, resetar_interface, status_label
+
+# --- Função Wrapper para manter compatibilidade com main.py ---
+def iniciar_interface(processar_callback):
+    """
+    Função de entrada original mantida para compatibilidade.
+    Instancia a classe e retorna o que o main.py espera.
+    """
+    app = InterfaceApp(processar_callback)
+    
+    # O main.py espera receber: root, função_reset, evento_cancelar
+    return app.root, app.resetar_interface, app.cancelar_event

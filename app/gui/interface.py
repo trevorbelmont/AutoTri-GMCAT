@@ -21,50 +21,90 @@ class InterfaceApp:
 
     def _configurar_widgets(self):
         """Define todo o layout e widgets da janela."""
+
+        # --- Configuração de Responsividade das Colunads da Interface ---
+            # Coluna 0 (Labels):    Peso 0: Tamanho fixo, não cresce.
+            # Coluna 1 (Inputs):    Peso 1 : Cresce e ocupa todo o espaço horizontal sobrando)
+            # NOTE: na definição    dos grids dos tk.Labels(...).grid(...) e tk.Entry().grid(...), 
+            # usaremos stick="w" (West/Esquerda) e stick="e" (East/Direita) para "colar" os widgets nas margens.
+        self.root.grid_columnconfigure(0, weight=0)
+        self.root.grid_columnconfigure(1, weight=1)
+            # Linha 10 (LOG):       Peso 1: É a última linha. Se ajusta à margem Sul.
+        self.root.grid_rowconfigure(10, weight=1)
+
         # --- Credenciais ---
-        '''Cria uma Label na janela principal (self.root) com  texto "Usuário SIGEDE". Sem o grid (...) a label existe apenas na RAM, mas não é desenhada
-        Grid(): posiciona e renderiza a label na devida posição; stick = "w" (west): alinhamento a Oeste; padx/padx = respiro (pra não colar nas bordas)'''
+        '''     >>> Widgets: tkinter.Label(...) e tkinter.Entry(...) - Elementos da tkinter padrão:
+
+        Cria uma Label na janela principal (self.root) com  texto "Usuário SIGEDE". Sem o grid (...) a label existe apenas na RAM, mas não é desenhada
+        Grid(): posiciona e renderiza a label na devida posição; stick = "w" (west): alinhamento à marge Oeste/Esquerda; padx/padx = respiro (pra não colar nas bordas)'''
         tk.Label(self.root, text="Usuário SIGEDE:").grid(row=0, column=0, sticky="w", padx=5, pady=5)
         
-        '''Cria um campo de entrada na janela principal (self.root) de largura 30.'''
+        '''Cria um campo de entrada na janela principal (self.root) de largura 30.
+        É importante observar que estes campos de ENTRADA são criado pertencendo a self (ao objeto da Classe InterfaceApp).
+        Isso é especialmente importante pois precisaremos referenciá-los para extrair a string que o usuário escrever neles -
+        - a extração ocorrerá na função _acao_confirmar(). Neste caso assim: " self.credenciais["usuario"] = self.entry_usuario.get()"'''
         self.entry_usuario_sigede = tk.Entry(self.root, width=30)
-        '''Posiciona e desenha o campo de entrada usando .grid(...).... segue similarmente'''
-        self.entry_usuario_sigede.grid(row=0, column=1, padx=5, pady=5)
+        
+        '''Posiciona e desenha o campo de entrada usando .grid(...) - usa stick="e": alinhando o campo à margem Direita.
+            Os outros widgets seguem similarmente ao primeiro.'''
+        self.entry_usuario_sigede.grid(row=0, column=1, sticky='e', padx=5, pady=5)
 
         tk.Label(self.root, text="Senha SIGEDE:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
         self.entry_senha_sigede = tk.Entry(self.root, show="*", width=30)
-        self.entry_senha_sigede.grid(row=1, column=1, padx=5, pady=5)
+        self.entry_senha_sigede.grid(row=1, column=1, sticky='e', padx=5, pady=5)
         
         tk.Label(self.root, text="Usuário SIATU:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
         self.entry_usuario = tk.Entry(self.root, width = 30)
-        self.entry_usuario.grid(row=2, column=1, padx=5, pady=5)
+        self.entry_usuario.grid(row=2, column=1, sticky='e', padx=5, pady=5)
 
         tk.Label(self.root, text="Senha SIATU:").grid(row=3, column=0, sticky="w", padx=5, pady=5)
         self.entry_senha = tk.Entry(self.root, show="*", width=30)
-        self.entry_senha.grid(row=3, column=1, padx=5, pady=5)
+        self.entry_senha.grid(row=3, column=1, sticky='e', padx=5, pady=5)
+
+        # --- Primeiro Separador (Protocolos e Botões)---
+        # sticky="ew": Estica de ponta a ponta
+        ttk.Separator(self.root, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky="ew", pady=2)
 
         # --- Protocolos ---
-        tk.Label(self.root, text="Protocolo(s) (separados por vírgula e sem espaço - Ex. 7463527921,48302891,2611172):").grid(row=4, column=0, padx=5, pady=5)
-        self.entry_protocolos = tk.Entry(self.root, width=50)
-        self.entry_protocolos.grid(row=4, column=1, padx=5, pady=5)
+        # Usamos 'columnspan=2' para que o label (maior) ocupe duas colunas.
+        tk.Label(self.root,
+                 text=  "Protocolo(s):\n(Separados por vírgula e sem espaço!)\n"
+                        "Ex. 7463527921,48302891,700675062505",
+                 justify="left",        #Justifica label à esquerda
+                 ).grid(row=5, column=0, stick="nw", padx=5, pady=0) 
+        self.entry_protocolos = tk.scrolledtext.ScrolledText(self.root, height=4,  width=30, wrap=tk.WORD)
+        self.entry_protocolos.grid(row=5, column=1, stick= "nsew", padx=5, pady=5)
+
 
         # --- Botões ---
+        '''     >>> Widget: tkinter.Button() - Elemento interativo padrão:
+
+        Parâmetros Críticos:
+        - command=self._acao_confirmar: Passagem de Referência (Callback).
+          ATENÇÃO: Passamos o nome da função SEM parênteses '()'. 
+          Se usássemos 'command=self.func()', o Python executaria a função IMEDIATAMENTE 
+          durante a criação da janela, e atribuiria o retorno (None) ao botão.
+          Queremos passar o endereço da função para ser chamada apenas no evento 'click'.
+        '''
         self.btn_confirmar = tk.Button(self.root, text="Iniciar", command=self._acao_confirmar)
-        self.btn_confirmar.grid(row=5, column=0, sticky="we", padx=5, pady=5)
+        self.btn_confirmar.grid(row=6, column=0, sticky="ew", padx=5, pady=3)
 
         self.btn_cancelar = tk.Button(self.root, text="Cancelar", command=self._acao_cancelar, state="disabled")
-        self.btn_cancelar.grid(row=5, column=1, sticky="we", padx=5, pady=5)
+        self.btn_cancelar.grid(row=6, column=1, sticky="ew", padx=5, pady=3)
+
+        # --- Segundo Separador (Status e LOG)---
+        ttk.Separator(self.root, orient='horizontal').grid(row=7, column=0, columnspan=2, sticky="ew", pady=2)
 
         # --- Status e Progresso ---
         self.status_label = tk.Label(self.root, text="Aguardando entrada...")
-        self.status_label.grid(row=6, column=0, columnspan=2, padx=5, pady=5)
+        self.status_label.grid(row=8, column=0, sticky="ew", columnspan=2, padx=5, pady=5)
 
-        self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=700, mode="determinate")
-        self.progress_bar.grid(row=7, column=0, columnspan=2, pady=5, padx=5)
+        self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=500, mode="determinate")
+        self.progress_bar.grid(row=9, column=0, sticky="ew", columnspan=2, pady=5, padx=5)
 
         # --- Log Area ---
-        self.log_area = scrolledtext.ScrolledText(self.root, width=90, height=20, state="disabled")
-        self.log_area.grid(row=8, column=0, columnspan=2, pady=5, padx=5, sticky="nsew")
+        self.log_area = scrolledtext.ScrolledText(self.root, width=30, height=10, state="disabled")
+        self.log_area.grid(row=10, column=0, columnspan=2, pady=5, padx=5, sticky="nsew")
 
     def _acao_confirmar(self):
         """Valida dados e inicia o processamento."""

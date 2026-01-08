@@ -73,3 +73,95 @@ Os *aliases* criam comandos curtos para comandos longos no terminal.
 | `grep -Rn "texto"` | Procura a string de forma recursiva (`R`) e mostra o número da linha (`n`) em subpastas. |
 | `grep "string" *` | Procura a string apenas nos arquivos da pasta atual. |
 | `vmc stop arcvm` | Comando específico para parar o container Android (arcvm). |
+
+(...)
+
+---
+---
+
+# 🧹 Manipulação de Metadados e Arquivos de Sistema (Windows / Python)
+
+### 💻 Comandos de Remoção Recursiva
+
+#### Bash (Linux / WSL)
+
+```bash
+# REMOÇÃO RECURSIVA: :Zone.Identifier & __pycache__
+
+# Remove arquivos de metadados do Windows (:Zone.Identifier)
+find . -name "*:Zone.Identifier" -type f -delete
+
+# Remove diretórios de cache do Python (__pycache__)
+# O uso de -exec rm -rf é necessário para garantir a remoção de pastas não vazias
+find . -name "__pycache__" -type d -exec rm -rf {} +
+
+```
+
+#### PowerShell (Windows)
+
+```powershell
+# REMOÇÃO RECURSIVA: :Zone.Identifier & __pycache__
+
+# Remove arquivos de metadados do Windows (:Zone.Identifier)
+Get-ChildItem -Path . -Recurse -Filter "*?Zone.Identifier" -File | Remove-Item -Force
+
+# Remove diretórios de cache do Python (__pycache__)
+Get-ChildItem -Path . -Recurse -Filter "__pycache__" -Directory | Remove-Item -Recurse -Force
+
+# PREVENÇÃO: Remove o bloqueio de zona antes da transferência para o WSL
+Get-ChildItem -Recurse | Unblock-File
+
+```
+
+---
+
+### 🔍 Detalhamento Técnico dos Argumentos (Breakdown)
+
+A execução dos comandos baseia-se nos seguintes parâmetros de filtragem e ação:
+
+**No Bash (Linux):**
+
+* `-name`: Define o padrão de busca (utiliza coringas como `*` para capturar sufixos).
+* `-type f`: Filtra exclusivamente **arquivos** (files). Utilizado para metadados.
+* `-type d`: Filtra exclusivamente **diretórios** (directories). Utilizado para caches.
+* `-delete`: Remove os itens encontrados de forma direta.
+* `-exec rm -rf {} +`: Executa a remoção forçada e recursiva. O símbolo `{}` representa o caminho encontrado e o `+` otimiza a execução para múltiplos itens.
+
+**No PowerShell (Windows):**
+
+* `-Recurse`: Varre todos os subdiretórios a partir da origem.
+* `-Filter`: Aplica a busca pelo nome específico (processamento mais rápido que `-Include`).
+* `-File`: Restringe a seleção a arquivos.
+* `-Directory`: Restringe a seleção a pastas.
+* `-Force`: Ignora restrições de leitura ou confirmações de segurança do sistema.
+
+---
+
+### 🛡️ Desativação Global de Metadados de Zona (Windows)
+
+A configuração abaixo impede que o Windows anexe metadados de transferência aos arquivos baixados, eliminando a criação futura de arquivos `:Zone.Identifier`.
+
+#### Opção 1: Editor de Política de Grupo Local (GPEDIT)
+
+*Compatível com Windows Pro/Enterprise*
+
+1. Executar (`Win + R`) **gpedit.msc**.
+2. Caminho: **Configuração do Usuário** > **Modelos Administrativos** > **Componentes do Windows** > **Gerenciador de Anexos**.
+3. Política: **Não preservar informações de zona em anexos de arquivos**.
+4. Configuração: **Habilitado**.
+
+#### Opção 2: Registro do Windows (PowerShell Admin)
+
+*Compatível com todas as versões (Home/Pro)*
+
+```powershell
+# Define a política de anexos para não salvar informações de zona
+$path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Policies\Attachments"
+if (-not (Test-Path $path)) { New-Item -Path $path -Force }
+Set-ItemProperty -Path $path -Name "SaveZoneInformation" -Value 1
+
+```
+
+**Nota de Segurança:** A desativação desta funcionalidade remove o alerta de segurança do Windows ao executar arquivos desconhecidos baixados da internet.
+
+---

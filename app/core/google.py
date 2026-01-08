@@ -8,6 +8,7 @@ from utils import logger
 import time
 import os
 
+
 class GoogleMapsAuto:
     """
     Classe para automatizar tarefas relacionadas ao Google Maps via Selenium.

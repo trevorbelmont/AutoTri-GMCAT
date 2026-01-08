@@ -1,0 +1,59 @@
+{
+    // Configurações da Aparência quando conectado ao WSL:
+
+   // --------- BARRA DE TÍTULO (da janela do VSCode)
+  "workbench.colorCustomizations": {
+
+    "titleBar.activeBackground": "#00ff0d", // Um verde claro para o título
+    "titleBar.activeForeground": "#000000", // Cor da fonte (Preta pra destaque no verde)
+
+    // --------------- ACTIVITY BAR  (Barra de Ícones a Esquerda) -----------------
+    // --- Cor e Configuração da Barra em si ---
+    "activityBar.background": "#00ff0d58",          // Cor de fundo da barra de ícones
+    "activityBar.foreground": "#00ff0d",          // Cor do ícone selecionado
+    "activityBar.inactiveForeground": "#ffffffaf", // Cor dos ícones não selecionados
+    "activityBar.border": "#00ff0d",              // Linha divisória vertical à direita da barra
+
+    // --- Destaques de Seleção nos Ícones ---
+    "activityBar.activeBorder": "#ffffff",        // Linha lateral ao ícone ativo (indicador de foco)
+    "activityBar.activeBackground": "#00ff0d38",    // Fundo do ícone que está clicado no momento
+    "activityBar.activeFocusBorder": "#ff0000",   // Borda do ícone quando selecionado via teclado
+    
+    // --- Badges (Círculos de notificação, ex: número de updates ou commits) ---
+    "activityBarBadge.background": "#000000",     // Cor do fundo do círculo de notificação
+    "activityBarBadge.foreground": "#ffffff",     // Cor do número dentro do círculo
+
+    // --- PINÉIS LATERIAS / EXPLORER (Side Bar) ---
+    // Área onde aparecem a árvore de arquivos e pastas
+    "sideBar.border": "#00ff0d",                 // Divisória vertical entre Explorer e Código
+    "sideBarSectionHeader.background": "#00ff0d25", // Fundo dos cabeçalhos de seção (ex: "Outline", "Timeline")
+
+    // =========================================================================
+    // PANEL (Área do Terminal, Output, Problems, Debug Console)
+    // =========================================================================
+
+   
+    // --- Cores Gerais do Painel ---
+    //"panel.background": "#0e120f",             // Cor de fundo do painel inferior (inteiro, inclusive o código)
+    "panel.border": "#00ff0d",                 // Borda que separa o painel do editor de código
+    "panel.dropBorder": "#ffffff",             // Cor da borda ao arrastar painéis para reordenar
+
+    // --- Títulos das Abas (TERMINAL, OUTPUT, etc.) ---
+    "panelTitle.activeForeground": "#00ff0d",   // Cor do texto da aba selecionada (ex: TERMINAL)
+    "panelTitle.inactiveForeground": "#ffffff", // Cor das abas não selecionadas
+    "panelTitle.activeBorder": "#ffffff",       // Linha de destaque abaixo da aba ativa
+
+    // --- BOTÕES DE AÇÃO (Maximizar, Fechar o painel no canto direito) ---
+    "panelSection.border": "#00ff0d",            // Borda entre seções do painel se ele for dividido
+    "panelSectionHeader.background": "#00ff0d",   // Fundo do cabeçalho de seções divididas
+
+    // ========== STATUS BAR =================
+    "statusBarItem.remoteBackground": "#00ff0d",   // Fundo do campo de conexão (Verde vibrante)
+    "statusBarItem.remoteForeground": "#000000",   // Cor do ícone e do texto "< >"
+    "statusBarItem.errorBackground": "#ff0000",     // Fundo quando há erros críticos
+    "statusBar.debuggingBackground": "#e5ff00"  // Muda a cor automaticamente ao iniciar o Debug (F5)
+
+
+    
+  }
+}

@@ -7,6 +7,7 @@
 2. **PIP (Gerenciamento de Pacotes):** Instalação, Freeze, Diagnóstico e Manutenção.
 3. **PYINSTALLER (Distribuição):** Compilação, Breakdown de Argumentos, Dados Extras e Limpeza.
 
+
 ---
 
 ## 1. VENV (Ambientes Virtuais)
@@ -163,14 +164,14 @@ pip install pyinstaller
 
 ```
 
-### Comando Completo (Exemplo Real)
+### Comando Completo (Exemplo Real) - o que uso no AutoTri
 
 ```powershell
-pyinstaller --onefile --noconsole --name="MeuRobo" --clean main.py
+pyinstaller --noconfirm --onefile --windowed --name "AutoTriagem-PBH 1_X" --icon "app/PBH-Iconizado.ico" --paths "app" --add-data "app/PBH-Iconizado.ico;." --clean app/main.py
 
 ```
 
-*(O executável será gerado na pasta `dist`)*
+*(O executável será gerado na pasta `dist` e assume-se que o íncone (PBH-Iconizado.ico) está dentro da pasta app)*
 
 ### Breakdown dos Argumentos (O que cada um faz)
 
@@ -260,7 +261,7 @@ pyinstaller --noconsole --onefile --name="SuperBot_v1" ^
 
 *(Nota: O caractere `^` no Powershell/CMD serve apenas para quebrar a linha visualmente e facilitar a leitura. Você pode digitar tudo numa linha só sem ele).*
 
-**Tradução do que fizemos acima:**
+**Tradução dos comandos acima acima (em prosa):**
 
 1. O `chromedriver.exe` vai para a raiz (`.`).
 2. A pasta `icones` do seu PC vai virar uma pasta chamada `midia/icones` dentro do app.

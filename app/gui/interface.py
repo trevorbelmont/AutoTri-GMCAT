@@ -2,8 +2,26 @@ import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
 import threading
 import os
+import sys
 from utils import logger, log_queue
 
+def resource_path(relative_path: str) -> str:
+    """ Retorna o caminho absoluto para recursos (como ícones) (Dev vs PyInstaller) """
+    try:
+        # 1. Modo PyInstaller (Pasta temporária _MEIPASS)
+        base_path = sys._MEIPASS
+    except Exception:
+        # 2. Modo Desenvolvimento (Baseado na localização deste arquivo)
+        # O arquivo interface.py está em: .../app/gui/
+        # O ícone está em:                .../app/
+        
+        # Pega a pasta atual do arquivo (app/gui)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Sobe um nível para chegar em 'app/' (onde o ícone deve estar)
+        base_path = os.path.dirname(current_dir)
+
+    return os.path.join(base_path, relative_path)
 
 class InterfaceApp:
     def __init__(self, processar_callback):
@@ -15,6 +33,19 @@ class InterfaceApp:
         self.credenciais = {}
         self.protocolos = []
         self.cancelar_event = threading.Event()
+
+        # --- CARREGAMENTO DO ÍCONE ---
+        ico_name = "PBH-Iconizado.ico"
+        caminho_icone = resource_path(ico_name)
+
+        try:
+            self.root.iconbitmap(caminho_icone)
+            # Log de Sucesso (Opcional, útil para dev)
+            print(f"DEBUG ICONE: Sucesso ao carregar '{ico_name}' em '{caminho_icone}'")
+        except Exception as e:
+            # Log de Falha Detalhado (O que você pediu)
+            print(f"AVISO ICONE: Não foi possível carregar o ícone '{ico_name}' em '{caminho_icone}': {e}")
+        # -----------------------------
         
         # Inicializa a Interface
         self._configurar_widgets()

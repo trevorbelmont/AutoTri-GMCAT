@@ -7,7 +7,6 @@ from utils import logger
 
 import time
 import os
-kjhsdf, s,
 
 class GoogleMapsAuto:
     """

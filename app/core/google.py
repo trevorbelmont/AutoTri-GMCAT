@@ -47,18 +47,55 @@ class GoogleMapsAuto:
     def navegar(self):
         """Navega até o endereço, muda para satélite, faz prints e Street View."""
         # Insere endereço no campo de busca
+        ''' BUG FIXING:
+        0. Normalmente a página já é carregada com o cursor na barra de busca - mas isso não é robusto pra todos os casos.
+        1. Localiza a barra de busca usando uma lista prioritária de seletores (Fallback: Name > ID > CSS),
+           contornando IDs dinâmicos gerados pelo Google. (07/01/2026)
+        2. Dispara a pesquisa via tecla ENTER, eliminando a dependência do botão de lupa instável.'''
+        
+        search_input = None # O input na barra de busca
+        
+        # Lista de seletores par as  tentativas - da mais provável para a menos provável
+        seletores = [
+            (By.NAME, "q"),                               
+            (By.ID, "searchboxinput"),                    
+            (By.CSS_SELECTOR, "input[role='combobox']"),  # Semântico (baseado no HTML)
+            (By.XPATH, "//input[@autofocus]")             # Genérico (o campo de busca costuma ter foco)
+        ]
+
+        # Testa pra cada tupla (by_type, locator) se acha o campo 
+        i: int  = 0
+        for (by_type, locator) in seletores: 
+            i+=1
+            try:
+                # Tenta achar com timeout curto (2s)
+                search_input = WebDriverWait(self.driver, 2).until(
+                    EC.element_to_be_clickable((by_type, locator))
+                )
+                logger.info(f"Campo de busca encontrado usando: {locator} - em menos de {i*2} segs")
+                break # Se achou, sai do loop
+            except Exception:
+                continue # Se não achou, tenta o próximo
+
+        if not search_input:
+            logger.error(f"ERRO CRÍTICO: Não foi possível encontrar a barra de pesquisa com nenhum seletor - testes duraram {i*2}segs.")
+            return
+
+        #  INTERAGE COM O CAMPO ENCONTRADO
         try:
-            search_input = self.wait.until(
-                EC.presence_of_element_located((By.ID, "searchboxinput"))
-            )
+            search_input.click() # Garante o foco
             search_input.clear()
-            if self.endereco == "Não informado" or not self.endereco:
+            
+            if not self.endereco or self.endereco == "Não informado":
                 logger.warning("IC sem endereço, pulando navegação google maps.")
                 return
+
             search_input.send_keys(self.endereco)
             logger.info(f"Endereço digitado")
+   
+         
         except Exception as e:
-            logger.error(f"Erro ao localizar campo de busca: {e}")
+            logger.error(f"Erro ao digitar no campo de busca: {e}")
             return
 
         # Aperta Enter para pesquisar (mais robusto pois não depende de modificações na interface do site)

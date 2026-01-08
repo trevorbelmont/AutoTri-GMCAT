@@ -269,7 +269,7 @@ pyinstaller --noconsole --onefile --name="SuperBot_v1" ^
 
 ---
 
-### ⚠ Nota Crítica (Para o Markdown)
+### ⚠ Nota Crítica 
 
 Adicionar os arquivos é só metade da batalha. O seu código Python precisa saber encontrá-los. Quando você usa `--onefile`, os arquivos são descompactados numa pasta temporária (`sys._MEIPASS`).
 

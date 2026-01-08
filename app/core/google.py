@@ -57,10 +57,11 @@ class GoogleMapsAuto:
         
         # Lista de seletores par as  tentativas - da mais provável para a menos provável
         seletores = [
-            (By.NAME, "q"),                               
-            (By.ID, "searchboxinput"),                    
-            (By.CSS_SELECTOR, "input[role='combobox']"),  # Semântico (baseado no HTML)
-            (By.XPATH, "//input[@autofocus]")             # Genérico (o campo de busca costuma ter foco)
+            (By.NAME, "q"),
+            (By.ID, "UGojuc"),                              # ID do elemento após atualização da página (07/01/2026)                                                   
+            (By.CSS_SELECTOR, "input[role='combobox']"),    # Semântico (baseado no HTML)
+            (By.XPATH, "//input[@autofocus]"),               # Genérico (o campo de busca costuma ter foco)
+            (By.ID, "searchboxinput"),                      # ID antigo, já não mais compatível com a página (mantido por documentação)
         ]
 
         # Testa pra cada tupla (by_type, locator) se acha o campo 

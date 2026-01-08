@@ -1,3 +1,5 @@
+* **[URGENTE / PRIORITÁRIO]** **ADD TRIAGEM POR ÍNDICES CADASTRIAS:** Tem que fazer... É Isso...
+
 * Padronizar os argumentos da classe de interface (app/pipeline/interface/base.py) para dar conta de todas as classes de serviço (em app/pipeline/sistemas.py)
 
 * Retirar as implementações repetitivas do método _click() em todos os bot-cores (todos os módulos em app/core/) e levar essa implementação para a classe base ou para um método utilitário - para diminuir repetição de código e adequar melhor ao SOLID.
@@ -8,3 +10,5 @@
         Isso elimina a perda de eficiência de 3 segundos caso o pop-up já tenha sido retirado na triagem anterior.
         (Protocolos são geralmente triados em séries numa única execução do AutoTri).
 
+* No status de triagem falar em qual X/N protocolo está e em qual fase. ex: Triando Protocolo 6/9 - SISCTM
+* Usar 'separador' (var da main) para separar seções visualmente no Log ( algo tipo -------- <protocolo> - Fase: SISCTM  ------) ou coisa parecida

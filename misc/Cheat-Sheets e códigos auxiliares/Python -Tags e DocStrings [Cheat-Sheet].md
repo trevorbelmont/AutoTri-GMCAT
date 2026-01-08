@@ -26,6 +26,7 @@ Utilizadas entre `"""` logo abaixo da definição de classes ou funções. Segue
 def processar_pedido(cliente_id, itens, urgente=False):
     """
     Explica o que este método (ou classe) é e/ou faz.
+    NOTE: [Uma Linha em branco é obrigatória entre a explicação do método/classe e os artefatos da DocString (param, return, yelds e etc)].
 
     :param cliente_id: (int) Explica que o parâmetro client_id é utilizado como int e o que ele representa...
     :param itens: (list) Lista de dicionários contendo 'sku' e 'quantidade'.

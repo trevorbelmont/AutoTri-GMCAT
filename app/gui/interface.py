@@ -186,9 +186,8 @@ class InterfaceApp:
                     if p.strip():          # Se não for vazio
                     protocols.append(p.strip()) # Limpa e adiciona
             '''
-            # Registra no log (e no arquivo) a lista de protocolos (limpada) que será processada
-            logger.info(f"Protocolos identificados ({len(self.protocolos)}): {self.protocolos}")
 
+          
             # Checa se as entradas estão preenchidas (não checa validade de credenciais - que é feita em tempo de execução)
             self._validar_entradas()
 

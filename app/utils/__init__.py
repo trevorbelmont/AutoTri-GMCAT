@@ -1,4 +1,4 @@
-from .logger import logger, log_queue
+from .logger import logger, log_queue, log_path
 from .pastas import abrir_pasta, criar_pasta_resultados
 from .web_driver import driver_context
 from .relatorio import (
@@ -9,9 +9,12 @@ from .relatorio import (
 )
 from .decorators import retry
 
+# O que é importado (variáveis, classes e métodos)
 __all__ = [
+    
     "logger",
     "log_queue",
+    "log_path"
     "abrir_pasta",
     "driver_context",
     "criar_pasta_resultados",

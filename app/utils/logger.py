@@ -12,11 +12,15 @@ else:
 # Ou, se você quer criar o log junto do executável:
 # ROOT = Path.cwd()
 
-LOG_FILE = "Detalhes da Triagem.txt"
+# Arquivo de LOG apenas da última triagem
+# NOTE: Este arquivo é substituído a cada nova triagem
+# Porém Uma cópia dele é enviada e renomeada para pasta de resultado 
+# Isso implementará a persistência do LOG
+LOG_FILE = "Detalhes da Última Triagem.txt"
 
 # Cria pasta do log se não existir
-log_file = ROOT / LOG_FILE
-log_file.parent.mkdir(parents=True, exist_ok=True)
+log_path = ROOT / LOG_FILE
+log_path.parent.mkdir(parents=True, exist_ok=True)
 
 
 # Fila com as novas mensagens do log à serem adicionadas ao logger (e que a interface "escuta")
@@ -42,7 +46,7 @@ file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 console_handler = logging.StreamHandler()
 console_handler.setFormatter(console_formatter)
 
-file_handler = logging.FileHandler(log_file, mode="w", encoding="utf-8")
+file_handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
 file_handler.setFormatter(file_formatter)
 
 # Handler da Fila (Usamos o formato do console para ficar limpo na tela)

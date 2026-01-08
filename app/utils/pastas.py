@@ -13,8 +13,11 @@ def abrir_pasta(path):
         subprocess.Popen(["xdg-open", path])
 
 
-def criar_pasta_resultados():
-    """Cria uma pasta de resultados com timestamp legível em português do Brasil."""
+def criar_pasta_resultados() -> str:
+    """Cria uma pasta de resultados com timestamp legível em português do Brasil.
+
+    :return: A String, pasta_resultados, com o nome da pasta (ex: "Resultados - 08 de janeiro de 2026 13h58)
+    """
     import locale
     from datetime import datetime
 

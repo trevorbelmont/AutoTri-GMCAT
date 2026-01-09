@@ -1,4 +1,5 @@
-from pipeline.interface import SistemaAutomacao   # importa a classe abstrata SistemaAutomação (classe parent)
+from typing import List, Dict, Any, Tuple, Optional  # Importa a biblioteca de tipagem (com Optional)
+from pipeline.interface import SistemaAutomacao      # importa a classe abstrata SistemaAutomação (classe parent)
 from core import SiatuAuto, UrbanoAuto, SisctmAuto, GoogleMapsAuto, SigedeAuto
 from utils import driver_context, logger, retry
 
@@ -20,11 +21,20 @@ De forma a garantir processos não ativos ou não intencionais no chrome. Isso �
 '''
 
 
-''' Define a classe Sigede (camada de serviço) que extende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
+''' Define a classe Sigede (nível de camada de serviço) que extende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
     Faz a injeção e gerenciamento de contexto, ofercendo os recursos necessários para classe de automação real, SigedeAuto, em app/core/sigede.py'''
 class Sigede(SistemaAutomacao):
-    def executar(self, protocolo, credenciais, pasta_protocolo):
-        indices = []    # insancia uma lista de índices a ser retornada ao fim das automações executadas neste método.
+    """Adapter para o sistema SIGEDE. Responsável pela busca de protocolos e identificação de índices cadastrais."""
+
+    def executar(self, protocolo: str, credenciais : Dict[str, str], pasta_protocolo: str) -> List[str]:
+        """Executa a automação do SIGEDE para buscar índices vinculados a um protocolo.
+
+        :param protocolo: Número do protocolo a ser consultado.
+        :param credenciais: Dicionário contendo as duas credenciais - usa 'usuario_sigede' e 'senha_sigede'.
+        :param pasta_protocolo: Caminho da pasta onde os downloads/logs do protocolo serão salvos.
+        :return: Lista de strings contendo os Índices Cadastrais (IC) encontrados.  """
+
+        indices: List[str] = []    # insancia uma lista de índices a ser retornada ao fim das automações executadas neste método.
         
         # inicializa o contexto driver_context, passando a pasta de download preferencial "pasta_protocolo" 
         # driver_context(pasta) é um método decorado com @contextmanager. Ele adquire e inicializa os recursos (Google Chrome, ChromeDriver e etc) 
@@ -52,11 +62,30 @@ class Sigede(SistemaAutomacao):
     Faz a injeção e gerenciamento de contexto e a lógica de repteição (@retry) e lançamento de exceção, se todas retentativas falharem.
     Faz a integração da classe abstrata, SistemaAutomação com a classe core (que realmente implementa as rotinas do bot),SiatuAuto, em app/core/siatu.py. '''
 class Siatu(SistemaAutomacao):
-    # Define o método virtual do contrato (SitemasAutomação - classe pai).add()
-    # indice = Nº do Índice Cadastral qa ser buscado no sistema do SIATU
-    def executar(self, indice, credenciais, pasta_indice):
-        dados_pb = {}       # dicionário de plantas básicas a ser preenchido durante a automação (?)
-        anexos_count = 0    # contador de anexos
+    """Adapter para o sistema SIATU.
+    Responsável pela orquestração da extração de dados (Planta Básica) e documentos (Anexos) 
+    para um único Índice Cadastral específico.
+    
+    Características:
+        - Escopo: Atômico (Processa 1 IC por vez).
+        - Resiliência: Utiliza @retry para mitigar instabilidades de conexão do SIATU.      """
+    
+    # Define o método virtual do contrato (SitemasAutomação - classe pai).
+    # indice = Nº do Índice Cadastral a ser buscado no sistema do SIATU
+    def executar(self, indice: str, credenciais: Dict[str, str], pasta_indice: str) -> Tuple[ Dict[str, Any] , int]:
+        """Executa a automação do SIATU (obter dados cadastrais e documentos) do Índice (único) informado .
+
+        :param indice: Índice Cadastral (IC) do imóvel.
+        :param credenciais: Dicionário contendo 'usuario' e 'senha' (Siatu/Urbano/Sisctm - o Geral).
+        :param pasta_indice: Caminho da pasta do IC para salvar a Planta Básica e Anexos.
+        :return: Uma tupla (dados_pb, anexous_count) contendo:
+                 1. Dicionário com dados da Planta Básica (área, endereço, etc).
+                 2. Inteiro com a contagem de anexos baixados.      """
+
+        # Variáveis de Retorno - tupla (dados_pb, anexos_count)
+        dados_pb: Dict[str, Any] = {}   # dicionário contendo dados dados da Planta Básica (área, endereço e etc)
+        anexos_count: int = 0           # Contador de anexos baixos
+
         add_config = True   # Esta variável determinará a flag de segurança do chrome na hora de criar o driver_context (e por consequência o navegador e ChromeDriver).
                             # Ela ativará a flag: --unsafely-treat-insecure-origin-as-secure. A camada de serviço é a responsável por determinar essa configuração extra de segurança.
 
@@ -88,18 +117,31 @@ class Siatu(SistemaAutomacao):
 
         # Se bem sucedido registra o sucesso (e o índice bem sucedido) e retorna os dados da planta básica e o número de anexos.
         logger.info(f"Siatu concluído para índice {indice}")
-        return dados_pb, anexos_count
+        return (dados_pb, anexos_count) # Retorno da Tupla
 
 
 ''' Define a classe Urbano (camada de serviço) que estende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
 Faz a injeção e gerenciamento de contexto do WebDriver, fornecendo os recursos necessários (driver configurado e credenciais) para a classe de automação real, UrbanoAuto, em app/core/urbano.py. 
 Esta camada é responsável por orquestrar a busca por dados técnicos (alvarás, baixas e etc) no sistema urbano usando o objeto UrbanoAuto (core da automação) '''
 class Urbano(SistemaAutomacao):
+    """Adapter para o Portal de Edificações (Urbano).
+    Focado na extração de dados de projetos de construção, alvarás e baixas
+    para um único Índice Cadastral.    """
+
     # Definição do método executar herdado, mas não definido, do contrato de SistemasAutomação
-    def executar(self, indice, credenciais, pasta_indice):
-        #instancia variáveis a serem retornadas
-        dados_projeto = {}
-        projetos_count = 0
+    def executar(self, indice: str, credenciais: Dict[str, str], pasta_indice: str) -> Tuple[Dict[str, Any], int]:
+        """
+        Executa a busca de projetos no sistema Urbano para o Índice Cadastral (único) fornecido.
+
+        :param indice: Índice Cadastral (IC) do imóvel.
+        :param credenciais: Dicionário contendo 'usuario' e 'senha' (Siatu/Urbano/Sisctm - o Geral).
+        :param pasta_indice: Caminho da pasta do IC para salvar documentos.
+        :return: Uma tupla (dados_projeto, contagem_projetos).
+        """
+
+        # Variáveis de Retorno - Tupla(dados_projeto, projetos_count)
+        dados_projeto: Dict[str, Any] = {}
+        projetos_count: int = 0
 
         # Gerencia contexto: Incializa, gerencia e libera os recurso do driver_context durante a automação
         with driver_context(pasta_indice) as driver:
@@ -121,16 +163,27 @@ class Urbano(SistemaAutomacao):
 
         # Registra conclusão do da tarefa no logger e retorna o dict com os dados do projeto e o número de projetos.
         logger.info(f"Urbano concluído para índice {indice}")
-        return dados_projeto, projetos_count
+        return (dados_projeto, projetos_count) # Retorna tupla (dict[str, Any] , int)
 
 ''' Define a classe Sisctm (camada de serviço) que estende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
 Faz a injeção e gerenciamento de contexto do WebDriver, fornecendo os recursos necessários (driver configurado e credenciais) para a classe de automação real, SisctmAuto, em app/core/sisctm.py. 
 Esta camada é responsável por automatizar o acesso ao mapa geográfico, ativar camadas específicas e extrair dados de área e endereço. '''
 class Sisctm(SistemaAutomacao):
+    """Adapter para o sistema de Mapa (SISCTM).
+    Responsável pela captura de evidências visuais (Prints) e dados geoespaciais (Áreas)
+    do lote correspondente à um único Índice Cadastral.     """
+
     # Definição da função executar(...) herdada, porém não definida, da classe pai, SistemaAutomacao
-    def executar(self, indice, credenciais, pasta_indice):
-        # Inicia dicionário a ser retornado
-        dados_sisctm = {}
+    def executar(self, indice: str, credenciais: Dict[str, str], pasta_indice: str) -> Dict[str, Any]:
+        """
+        Executa a automação do mapa SISCTM para capturar evidências.
+
+        :param indice: Índice Cadastral (IC) do imóvel.
+        :param credenciais: Dicionário contendo 'usuario' e 'senha' (Siatu/Urbano/Sisctm - o Geral).
+        :param pasta_indice: Caminho da pasta do IC para salvar prints do mapa.
+        :return: Dicionário com dados geográficos (área terreno, área construída, endereço oficial).
+        """
+        dados_sisctm: Dict[str, Any] = {} # Dicionário que será retornado
 
         # Gerencia contexto: Incializa, gerencia e libera os recurso do driver_context durante a automação
         with driver_context(pasta_indice) as driver:
@@ -155,9 +208,24 @@ class Sisctm(SistemaAutomacao):
 Esta é a última etapa de automação. A classe não retorna nada e não requer credenciais. Seu papel é orquestrar os dados dos bots anteriores, encontrar o endereço mais confiável, 
 e injetá-lo no bot de automação real, GoogleMapsAuto (em app/core/google.py), para obter documentação visual (prints de mapa e fachada). '''
 class GoogleMaps(SistemaAutomacao):
+    """ Adapter para o Google Maps.
+    Gera evidências visuais (Satélite/Fachada) baseadas em endereços encontrados nos sistemas anteriores.       """
+
     # TODO: A definição do método executar nessa classe tem mais parâmetros do que na classe de interface. Padronizar.
     # Define o método legado do contrato. Desta vez não são necessárias credenciais mas dados de endereço
-    def executar(self, indice, dados_sisctm, dados_pb, pasta_indice):
+    def executar(self, 
+                 indice: str, 
+                 dados_sisctm: Optional[Dict[str, Any]],    # Se Sisctm falhar é um dict vazio
+                 dados_pb : Optional[Dict[str, Any]],       # Se  Siatu falhar é um dict vazio
+                 pasta_indice: str) -> None:               # Não retorna nada
+        """ Orquestra a busca e captura de imagens no Google Maps (com os dados de Sistm, Siatu e índice (do Sigede)).
+        
+        :param indice: Índice Cadastral (usado apenas para log).
+        :param dados_sisctm: Dicionário opcional do SISCTM (prioridade 1 para endereço).
+        :param dados_pb: Dicionário opcional do SIATU (prioridade 2 para endereço).
+        :param pasta_indice: Caminho da pasta para salvar os prints do Google Maps.
+        :return: None.
+        """
         # bloco executado se pelo menos uma das automações anteriores, Sisctm ou Siatu, foi bem sucedida. Usa os dados retornados pelas funções.
         if dados_sisctm or dados_pb:
             # Define o endereço priorizando os dados extraídos do SISCTM, quando disponíveis, em detrimento dos dados SIATU.

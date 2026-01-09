@@ -83,4 +83,4 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
         dados_projeto=dados_projeto,
         dados_sisctm=dados_sisctm,
     )
-    logger.info(f"Relatório gerad\n\n")
+    logger.info(f"Relatório gerado!\n\n")

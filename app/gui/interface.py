@@ -228,10 +228,11 @@ class InterfaceApp:
                 self.atualizar_progresso
             )
         except Exception as e:
+            # Se der erro CRÍTICO na thread (antes do main tratar), faz o log do Erro e.....
             logger.error(f"Erro na thread de processamento: {e}")
-        finally:
-            # Garante que o reset da UI aconteça na thread principal do Tkinter
-            self.root.after(0, self.resetar_interface)
+            # Como aconteceu um erro crítico, FORÇA O RESET DA INTERFACE (pra não travar em "Processando...")
+            # Este RESET normalmente é chamado ao fim do processamento na main.py - chamamos aqui SÓ EM CASO DE ERRO NA THREAD
+            self.root.after(0, self.resetar_interface) 
 
     def atualizar_progresso(self, valor):
         """Callback passado para o processamento atualizar a barra."""

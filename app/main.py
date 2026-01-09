@@ -123,7 +123,8 @@ def main():
                 except Exception as e:
                     logger.error(f"Erro ao salvar cópia do log persistente na pasta destino:\n({destino})\n{e}")
             # -----------------------------------------------
-            root.after(0, resetar_interface)
+            root.after(0, resetar_interface) # A main (não interface.py) está resetando a interface
+            # Reseta a interface DEPOIS de tentar mover o log pra past de Resultados
 
     root, resetar_interface, _ = iniciar_interface(processar)
     root.mainloop()

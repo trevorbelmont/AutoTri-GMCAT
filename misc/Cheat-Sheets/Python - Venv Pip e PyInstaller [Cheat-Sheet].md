@@ -166,6 +166,7 @@ pip install pyinstaller
 
 ### Comando Completo (Exemplo Real) - o que uso no AutoTri
 
+Rodando,com a venv ativada, o comando abaixo a partir do diretório que contém a pasta app (e contem a venv), geramos um executável com ícone e num arquivo só.
 ```powershell
 pyinstaller --noconfirm --onefile --windowed --name "AutoTriagem-PBH 1_X" --icon "app/PBH-Iconizado.ico" --paths "app" --add-data "app/PBH-Iconizado.ico;." --clean app/main.py
 

@@ -1,6 +1,6 @@
 import sys
 from pathlib import Path
-import logging
+import logging      # Importa o módulo de LOGGING padrão do python
 import queue  # Importa fila
 
 # Detecta se está rodando via PyInstaller
@@ -36,6 +36,22 @@ class QueueHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+# Define uma função para gerar separadores de seção
+def section_log(titulo: str, separador: str = "-", largura: int = 50):
+    """
+    Gera uma linha de log centralizada e destacada com Título.
+    Ex: ----------- < SIATU : 31.00337504/2025-03 > -----------
+
+    :param: titulo: (str) A mensagem a ser exibida no centro (entre os separadores)
+    :param: separador: (str) o caractére usado como separador (por padrão é '-' mas pode ser ' ', espaço em branco tb) 
+    :largura: (int) a largura da linha da mensagem
+
+    """
+    mensagem = f" {titulo} "
+    linha_formatada = mensagem.center(largura, separador)
+    logger.info(linha_formatada)
+
+
 # Formatter para o console e GUI (limpo, sem milissegundos)
 console_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
@@ -53,6 +69,7 @@ file_handler.setFormatter(file_formatter)
 queue_handler = QueueHandler()
 queue_handler.setFormatter(console_formatter)
 
+''' DEFINE O OBJETO LOGGER - utilizando logging.getlogger (do python)'''
 # Logger central
 logger = logging.getLogger("triagem_logger")
 logger.setLevel(logging.INFO)

@@ -23,7 +23,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib import colors
 from datetime import datetime
 
-
+# Função que gera o relatório do Índice Cadastral (associado a protocolos VIRTUAL ou REAL)
 def gerar_relatorio(
     indice_cadastral,
     anexos_count=None,
@@ -34,9 +34,11 @@ def gerar_relatorio(
     dados_planta=None,
     dados_projeto=None,
     dados_sisctm=None,
+    protocolo=None,
+    ic_avulso = False,
 ):
     """
-    Gera um relatório PDF com base nos dados fornecidos.
+    Gera um relatório PDF do Índice Cadastral com base nos dados fornecidos.
     """
     doc = SimpleDocTemplate(
         nome_pdf,
@@ -240,54 +242,69 @@ def gerar_relatorio(
     logger.info("Criando relatório PDF")
 
     # Seções
-    # 1. SIGEDE
-    logger.info("Adicionando seção 1: SIGEDE")
-    adicionar_secao(
-        "1. SIGEDE - Busca por Protocolo e ICs vinculados",
-        "A presente seção será igual para todos os ICs vínculados ao mesmo protocolo.",
-    )
+    # 1. SIGEDE / ORIGEM DA DEMANDA
+    logger.info("Adicionando seção 1: SIGEDE/Origem do IC")
 
-    # Busca arquivos .pdf e .png um nível acima (pasta protocolo)
-    arquivos_sigede = []
-    if pasta_anexos and os.path.exists(pasta_anexos):
-        pasta_pai = os.path.dirname(pasta_anexos)
-        count = 0
-        for arq in sorted(os.listdir(pasta_pai)):
-            if arq.lower().endswith((".pdf", ".png")):
-                count += 1
-                # Caminho relativo (../arquivo.pdf)
-                href = "../" + quote(
-                    arq,
-                    safe="._-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-                )
-                link = Paragraph(
-                    f'<a href="{href}" color="blue">{arq}</a>', style_normal
-                )
-                arquivos_sigede.append([f"Anexo {count}", link])
-
-    if arquivos_sigede:
-        tabela_col = Table(
-            [["Anexo(s)", "Link"]] + arquivos_sigede, colWidths=[200, 300]
+    # ---- Chea se é triagem por IC (ic_avulso) ---
+    if ic_avulso:
+        # CASO AVULSO: Apenas informa a origem, sem buscar arquivos
+        adicionar_secao(
+            "1. Triagem por Índice Cadastral",
+            "Triagem realizada diretamente por lista de Índices Cadastrais (Avulsos). "
+            "Não há Protocolo SIGEDE ou Certidão de Inteiro Teor acessível para o Índice."
         )
-        tabela_col.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), colors.lightblue),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                    ("ALIGN", (0, 0), (-1, -1), "LEFT"),
-                    ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                    ("FONTSIZE", (0, 0), (-1, -1), 10),
-                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
-                ]
-            )
-        )
-        elementos.append(tabela_col)
-        elementos.append(Spacer(1, 12))
+    
     else:
-        elementos.append(
-            Paragraph("Nenhum registro encontrado no SIGEDE.", style_normal)
+        # CASO PROTOCOLO REAL: Lógica original de busca de arquivos
+        texto_prot = protocolo if protocolo else "N/A"
+        adicionar_secao(
+            "1. SIGEDE - Busca por Protocolo e ICs vinculados" ,
+            "A presente seção será igual para todos os ICs vínculados ao mesmo protocolo.",
         )
-        elementos.append(Spacer(1, 12))
+
+        # Busca arquivos .pdf e .png um nível acima (pasta protocolo)
+        arquivos_sigede = []
+        if pasta_anexos and os.path.exists(pasta_anexos):
+            pasta_pai = os.path.dirname(pasta_anexos)
+            count = 0
+            for arq in sorted(os.listdir(pasta_pai)):
+                if arq.lower().endswith((".pdf", ".png")):
+                    count += 1
+                    # Caminho relativo (../arquivo.pdf)
+                    href = "../" + quote(
+                        arq,
+                        safe="._-ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
+                    )
+                    link = Paragraph(
+                        f'<a href="{href}" color="blue">{arq}</a>', style_normal
+                    )
+                    arquivos_sigede.append([f"Anexo {count}", link])
+
+        if arquivos_sigede:
+            tabela_col = Table(
+                [["Anexo(s)", "Link"]] + arquivos_sigede, colWidths=[200, 300]
+            )
+            tabela_col.setStyle(
+                TableStyle(
+                    [
+                        ("BACKGROUND", (0, 0), (-1, 0), colors.lightblue),
+                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+                        ("ALIGN", (0, 0), (-1, -1), "LEFT"),
+                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+                        ("FONTSIZE", (0, 0), (-1, -1), 10),
+                        ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ]
+                )
+            )
+            elementos.append(tabela_col)
+            elementos.append(Spacer(1, 12))
+        else:
+            elementos.append(
+                Paragraph("Nenhum registro encontrado no SIGEDE.", style_normal)
+            )
+            elementos.append(Spacer(1, 12))
+    
+    # --- FIM DA LÓGICA CONDICIONAL DA SEÇÃO 1 ---
 
     # 2. Planta Básica - Exercício Seguinte e/ou Recalculado e/ou Primeiro do Ano
     logger.info("Adicionando seção 2: Planta Básica")

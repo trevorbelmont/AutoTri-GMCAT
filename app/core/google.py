@@ -2,6 +2,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys  # Import necessário para o ENTER
+from selenium.webdriver.remote.webelement import WebElement
+from typing import Any, Optional        # modulo de tipagem
 
 from utils import logger
 
@@ -27,11 +29,77 @@ class GoogleMapsAuto:
         self.wait = WebDriverWait(self.driver, timeout=timeout)
 
     def _click(self, element):
-        """Tenta clicar diretamente, se falhar usa JavaScript."""
+        """ O click clássico (e robusto): Tenta clicar diretamente, se falhar usa JavaScript."""
         try:
             element.click()
         except Exception:
             self.driver.execute_script("arguments[0].click();", element)
+
+    # Definie um método de achar elemento e clicar (ou não) robusto, que devolve o elemento encontrado.
+    # Usa **kwargs (keyword arguments para gerar automaticamente o dicionário de seletores na ordem passada)
+    def _interact(
+        self, 
+        nome_log: str, 
+        timeout_tentativa: float = 2.0,
+        clicar: bool = True,
+        **seletores: str
+    ) -> Optional[WebElement]:
+        """ Um click ou element finder mais robusto com lógica de fallback em várias etpas implementada.
+        Localiza um elemento usando estratégias de fallback baseadas nos argumentos passados e na ordem que são passados.
+        Retorna o WebElement encontrado para uso posterior, caso necessário.
+
+        Exemplo de uso:
+            self._interagir("Botão", id="meu_id", xpath="//div", click=True)
+
+        :param nome_log: Nome para registro no log.
+        :param timeout_tentativa: [OPCIONAL - default: 2.0 segs] Tempo máximo de espera pra cada seletor achar o elmento - em segs.
+        :param clicar: [[OPCIONAL - default: True] Se True, executa o _click() automaticamente ao encontrar.
+        :param **seletores: Pares de estratégia=valor (ex: id="x", name="y", xpath="z").
+                            A ordem dos argumentos define a prioridade.
+        :return: O WebElement encontrado ou None, se falhar em todos os seletores.
+        """
+        # Define os tipo de métodos de procura válidos (tags do código fonte)
+        # Útil para evitar que tags não previstas no selenium sejam testadas
+        mapa_by = {
+            'id': By.ID,
+            'name': By.NAME,
+            'xpath': By.XPATH,
+            'css': By.CSS_SELECTOR,
+            'class_name': By.CLASS_NAME,
+            'tag': By.TAG_NAME
+        }
+
+        tempo_gasto = 0
+        
+        # Itera sobre os argumentos passados (kwargs preserva ordem no Python 3.7+)
+        for estrategia, valor_seletor in seletores.items():
+            if estrategia not in mapa_by:
+                continue # Ignora chaves inválidas
+
+            by_type = mapa_by[estrategia]
+            
+            try:
+                # Tenta encontrar
+                elemento = WebDriverWait(self.driver, timeout_tentativa).until(
+                    EC.element_to_be_clickable((by_type, valor_seletor))
+                )
+                
+                tempo_gasto += timeout_tentativa
+                logger.info(f"{nome_log} encontrado via '{estrategia}' em menos de {tempo_gasto:.1f} segs de busca.")
+                
+                # Se encontrou elemento e click é true, clica no elemento antes de devolvê-lo
+                if clicar:
+                    self._click(elemento)
+                
+                return elemento
+
+            except Exception:
+                tempo_gasto += timeout_tentativa
+                continue # Falhou, tenta o próximo argumento
+
+        logger.error(f"ERRO: {nome_log} não encontrado após todas as {len(seletores)} tentativas.\n"
+                     "Tempo de procura por {nome_log}: {tempo_gasto:.1f} segs")
+        return None
 
     def acessar_google_maps(self):
         """Abre a página inicial do Google Maps."""
@@ -46,40 +114,26 @@ class GoogleMapsAuto:
 
     def navegar(self):
         """Navega até o endereço, muda para satélite, faz prints e Street View."""
-        # Insere endereço no campo de busca
-        ''' BUG FIXING:
-        0. Normalmente a página já é carregada com o cursor na barra de busca - mas isso não é robusto pra todos os casos.
-        1. Localiza a barra de busca usando uma lista prioritária de seletores (Fallback: Name > ID > CSS),
-           contornando IDs dinâmicos gerados pelo Google. (07/01/2026)
-        2. Dispara a pesquisa via tecla ENTER, eliminando a dependência do botão de lupa instável.'''
-        
-        search_input = None # O input na barra de busca
-        
-        # Lista de seletores par as  tentativas - da mais provável para a menos provável
-        seletores = [
-            (By.NAME, "q"),
-            (By.ID, "UGojuc"),                              # ID do elemento após atualização da página (07/01/2026)                                                   
-            (By.CSS_SELECTOR, "input[role='combobox']"),    # Semântico (baseado no HTML)
-            (By.XPATH, "//input[@autofocus]"),               # Genérico (o campo de busca costuma ter foco)
-            (By.ID, "searchboxinput"),                      # ID antigo, já não mais compatível com a página (mantido por documentação)
-        ]
-
-        # Testa pra cada tupla (by_type, locator) se acha o campo 
-        i: int  = 0
-        for (by_type, locator) in seletores: 
-            i+=1
-            try:
-                # Tenta achar com timeout curto (2s)
-                search_input = WebDriverWait(self.driver, 2).until(
-                    EC.element_to_be_clickable((by_type, locator))
-                )
-                logger.info(f"Campo de busca encontrado usando: {locator} - em menos de {i*2} segs")
-                break # Se achou, sai do loop
-            except Exception:
-                continue # Se não achou, tenta o próximo
+        # =========================================================================
+        # 1. PESQUISA (Busca o elemento e recebe o objeto para digitar)
+        # =========================================================================
+        # A ordem dos parâmetros define a prioridade de busca:
+        search_input = self._interact(
+            nome_log="Campo de Busca",
+            timeout_tentativa=1.5,  # Fail fast (1.5s por tentativa)
+            clicar=True,            # Clica para garantir o foco
+            
+            # SELETORES (Prioridade Top -> Down):
+            name="q",
+            id="UGojuc",
+            css="input[role='combobox']",
+            xpath="//input[@autofocus]",
+            # Fallback legado se quiser manter:
+            # id_legado="searchboxinput" (Isso seria ignorado pelo seu mapa, a menos que adicione lá)
+        )
 
         if not search_input:
-            logger.error(f"ERRO CRÍTICO: Não foi possível encontrar a barra de pesquisa com nenhum seletor - testes duraram {i*2}segs.")
+            logger.error(f"ERRO CRÍTICO: Não foi possível encontrar a barra de pesquisa com nenhum seletor!\n ABORTANDO ROTINA NO GOOGLE MAPS E PROSSEGUINDO COM A TRIAGEM.")
             return
 
         #  INTERAGE COM O CAMPO ENCONTRADO
@@ -152,7 +206,7 @@ class GoogleMapsAuto:
             logger.info("Street View ativado")
             time.sleep(5)
         except Exception as e:
-            input ("INPUT DE DEBUG. APERTE ENTER PARA CONTINUAR")
+            # input ("INPUT DE DEBUG. APERTE ENTER PARA CONTINUAR")
             logger.warning(f"Não foi possível clicar no Street View: {e}")
             return
 

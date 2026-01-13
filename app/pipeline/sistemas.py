@@ -55,7 +55,7 @@ class Sigede(SistemaAutomacao):
             if sigede.acessar() and sigede.login() and sigede.navegar(protocolo):
                 indices = sigede.verificar_tabela()
 
-        logger.info(f"SIGEDE concluído para protocolo {protocolo}")
+        logger.info(f"SIGEDE concluído para protocolo {protocolo}.\n")
         return indices  # retorna a lista de índices
 
 ''' Define a classe Siato (camada de serviço) que extende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
@@ -113,10 +113,10 @@ class Siatu(SistemaAutomacao):
             # Tenta a execução da função definida (com o decorator), se falhar a última vez (definida no @retry) a exceção é lançada
             dados_pb, anexos_count = fluxo_siatu()
         except Exception as e: # Regista a falha no log e continua os processos.
-            logger.error(f"Falha no fluxo do SIATU para índice {indice}: {e}")
+            logger.error(f"Falha no fluxo do SIATU para índice {indice}: {e}.\n")
 
         # Se bem sucedido registra o sucesso (e o índice bem sucedido) e retorna os dados da planta básica e o número de anexos.
-        logger.info(f"Siatu concluído para índice {indice}")
+        logger.info(f"Siatu concluído para índice {indice}.\n")
         return (dados_pb, anexos_count) # Retorno da Tupla
 
 
@@ -162,7 +162,7 @@ class Urbano(SistemaAutomacao):
             # Internamente urbaano.download_projeto(...), no entanto, loga falhas e implementa tratamento de exceções.
 
         # Registra conclusão do da tarefa no logger e retorna o dict com os dados do projeto e o número de projetos.
-        logger.info(f"Urbano concluído para índice {indice}")
+        logger.info(f"Urbano concluído para índice {indice}.\n")
         return (dados_projeto, projetos_count) # Retorna tupla (dict[str, Any] , int)
 
 ''' Define a classe Sisctm (camada de serviço) que estende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
@@ -201,7 +201,7 @@ class Sisctm(SistemaAutomacao):
             if sisctm.login() and sisctm.ativar_camadas(indice):
                 dados_sisctm = sisctm.capturar_areas()
 
-        logger.info(f"SISCTM concluído para índice {indice}")
+        logger.info(f"SISCTM concluído para índice {indice}.\n")
         return dados_sisctm     # os dados retornados nesse método serão utilizados na automação do GoogleMaps
 
 ''' Define a classe GoogleMaps (camada de serviço) que estende de SistemaAutomação e define o método "virtual" executar(...) - do contrato da classe pai. 
@@ -251,4 +251,4 @@ class GoogleMaps(SistemaAutomacao):
                 google.navegar()            # Tratamentos de exceções e logging de erros são feitos dentro deste método, navegar().
 
         # Registra a conclusão da automação do G-Maps. Esta classe não retorna nada.
-        logger.info(f"Google Maps concluído para índice {indice}")
+        logger.info(f"Google Maps concluído para índice {indice}.\n")

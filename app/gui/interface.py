@@ -5,13 +5,18 @@ import os
 import sys
 from utils import logger, log_queue
 
+
+
+
 def resource_path(relative_path: str) -> str:
     """ Retorna o caminho absoluto para recursos (como ícones) (Dev vs PyInstaller) """
     try:
-        # 1. Modo PyInstaller (Pasta temporária _MEIPASS)
+        # Modo PyInstaller: procura a pasta temporária MEIPASS
         base_path = sys._MEIPASS
-    except Exception:
-        # 2. Modo Desenvolvimento (Baseado na localização deste arquivo)
+
+    except Exception: # Se não achou a pasta MEIPASS, então está rodando no interpretador
+
+        # Modo Desenvolvimento (Baseado na localização do módulo atual, interface.py)
         # O arquivo interface.py está em: .../app/gui/
         # O ícone está em:                .../app/
         
@@ -23,15 +28,19 @@ def resource_path(relative_path: str) -> str:
 
     return os.path.join(base_path, relative_path)
 
+
 class InterfaceApp:
+    """ A classe que define o objeto de interface usando TKinter, callbacks e threads. """
+     
     def __init__(self, processar_callback):
         self.processar_callback = processar_callback
         self.root = tk.Tk()
         self.root.title("Automação de Triagem")
         
-        # Estado da Aplicação
+        # Estado da Aplicação (variáveis e evento thread)
         self.credenciais = {}
         self.protocolos = []
+        self.indices_avulsos = []
         self.cancelar_event = threading.Event()
 
         # --- CARREGAMENTO DO ÍCONE ---
@@ -53,6 +62,7 @@ class InterfaceApp:
 
 
 #==================================== INÍCIO DA DEFINIÇÃO DE LAYOUT =================================================================
+# NOTE:  --------> self._NomeDaVarDoWidget_.winfo_exists() checa se o widget existe
 
     def _configurar_widgets(self):
         """Define todo o layout e widgets da janela."""
@@ -64,10 +74,12 @@ class InterfaceApp:
         self.root.grid_columnconfigure(0, weight=0)     # Coluna 0 (Labels):    Peso 0: Tamanho fixo, não cresce.
         self.root.grid_columnconfigure(1, weight=1)     # Coluna 1 (Inputs):    Peso 1 : Cresce e ocupa todo o espaço horizontal sobrando)
             
-        self.root.grid_rowconfigure(10, weight=1)       # Linha 10 (LOG):       Peso 1: É a última linha. Se ajusta à margem Sul.
+        self.root.grid_rowconfigure(11, weight=1)       # Linha 10 (LOG):       Peso 1: É a última linha. Se ajusta à margem Sul.
         
         # NOTE: Na definição dos grids dos tk.Labels(...).grid(...) e tk.Entry().grid(...) e etc... 
         # usaremos stick="w" (West/Esquerda) e stick="e" (East/Direita) para "colar" os widgets nas margens.
+
+        # TODO: Parametrizar as rows de cada seção do código - atualmente está hardcoded (definidas em números fixos no código)
 
         # --- Credenciais ---
         '''     >>> Widgets: tkinter.Label(...) e tkinter.Entry(...) - Elementos da tkinter padrão:
@@ -112,15 +124,23 @@ class InterfaceApp:
             e renderizamos o widget com o .grid(...), NORMALMENTE.
         '''
         tk.Label(self.root,
-                 text=  "Protocolo(s):\n(Separados por ESPAÇO ou VÍRGULAS)\n\n"
+                 text=  "Protocolo(s):\n(Separados por ESPAÇO ou VÍRGULAS)\n"
                         "Ex. 7463527921,48302891,700675062505)",
                  justify="left",        #Justifica label à esquerda
                  ).grid(row=5, column=0, stick="nw", padx=5, pady=0)
         # wrap=tk.WORD : Define para que palavras (protocolos), separados por vírgula e espaço, 
         # não sejam visual partidos no meio na quebra de linha.
         self.entry_protocolos = tk.scrolledtext.ScrolledText(self.root, height=4,  width=30, wrap=tk.WORD)
-        self.entry_protocolos.grid(row=5, column=1, stick= "nsew", padx=5, pady=5)
+        self.entry_protocolos.grid(row=5, column=1, stick= "nsew", padx=5, pady=2)
 
+        #--------------------------- ÍNDICES CADASTRAIS ---------------------------------------
+
+        tk.Label(self.root, text = "Índices Cadastrais:",
+                 ).grid(row=6, column=0, stick='nw', padx=5,pady = 15)
+        
+        # Adiciona o conteúdo do ScrolledText de Índices Cadastrais como uma variável do objeto InterfaceApp
+        self.entry_cadastrais = tk.scrolledtext.ScrolledText(self.root, height = 3, width=30, wrap=tk.WORD)
+        self.entry_cadastrais.grid(row = 6, column = 1, stick = 'nsew', padx=5, pady=5)
 
         # --------------------------------------- Botões ---------------------------------------
         '''     >>> Widget: tkinter.Button() - Elemento interativo padrão:
@@ -133,65 +153,83 @@ class InterfaceApp:
           Queremos passar o endereço da função para ser chamada apenas no evento 'click'.
         '''
         self.btn_confirmar = tk.Button(self.root, text="Iniciar", command=self._acao_confirmar)
-        self.btn_confirmar.grid(row=6, column=0, sticky="ew", padx=5, pady=3)
+        self.btn_confirmar.grid(row=7, column=0, sticky="ew", padx=5, pady=3)
 
         self.btn_cancelar = tk.Button(self.root, text="Cancelar", command=self._acao_cancelar, state="disabled")
-        self.btn_cancelar.grid(row=6, column=1, sticky="ew", padx=5, pady=3)
+        self.btn_cancelar.grid(row=7, column=1, sticky="ew", padx=5, pady=3)
 
         # --- Segundo Separador (Status e LOG)---
-        ttk.Separator(self.root, orient='horizontal').grid(row=7, column=0, columnspan=2, sticky="ew", pady=2)
+        ttk.Separator(self.root, orient='horizontal').grid(row=8, column=0, columnspan=2, sticky="ew", pady=2)
 
         # --- Status e Progresso ---
         self.status_label = tk.Label(self.root, text="Aguardando entrada...")
-        self.status_label.grid(row=8, column=0, sticky="ew", columnspan=2, padx=5, pady=5)
+        self.status_label.grid(row=9, column=0, sticky="ew", columnspan=2, padx=5, pady=2)
 
         self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=500, mode="determinate")
-        self.progress_bar.grid(row=9, column=0, sticky="ew", columnspan=2, pady=5, padx=5)
+        self.progress_bar.grid(row=10, column=0, sticky="ew", columnspan=2, pady=5, padx=1)
 
         # --- Log Area ---
         self.log_area = scrolledtext.ScrolledText(self.root, width=30, height=10, state="disabled")
-        self.log_area.grid(row=10, column=0, columnspan=2, pady=10, padx=5, sticky="nsew")
+        self.log_area.grid(row=11, column=0, columnspan=2, pady=10, padx=2, sticky="nsew")
 
 #====================================  FIM DA DEFINIÇÃO DE LAYOUT =================================================================
 
 
     def _acao_confirmar(self):
-        """Valida dados e inicia o processamento."""
+        """Valida dados e inicia o processamento dentro de um try. 
+        Se alguma excessão for lançadas (na validação de dados, por exemplo),
+        Este método captura a exceção, NÃO COMEÇA A TRIAGEM e exibe a message box de erro de validação"""
+
         try:
             self.credenciais["usuario"] = self.entry_usuario.get()
             self.credenciais["senha"] = self.entry_senha.get()
             self.credenciais["usuario_sigede"] = self.entry_usuario_sigede.get()
             self.credenciais["senha_sigede"] = self.entry_senha_sigede.get()
 
-            # ============= TRATAMENTO DO TEXTO NO CAMPO DE PROTOCOLOS (ScrolledText)=============
+            # ============= TRATAMENTO DO TEXTO DO  CAMPO DE PROTOCOLOS (ScrolledText) =============
             # ("1.0", "end-1c"): Pega todo o texto exceto o último caractere de quebra de linha (automaticamente adicionado pelo TKinter).
-            texto_bruto = self.entry_protocolos.get("1.0", "end-1c")
+            texto_protocolos_bruto = self.entry_protocolos.get("1.0", "end-1c")
             
             # Normaliza: Transforma quebras de linha e espaços (eventualmente colocados pelo usuário ou automáticas) em vírgulas
-            texto_normalizado = texto_bruto.replace("\n", ",") # Troca 'ENTER' por vírgula -Permite que o usuário cole uma coluna do Excel ou digite com vírgulas
-            texto_normalizado = texto_normalizado.replace(" ", ",") # Troca Espaço por vírgula (mtos espaços viram muitas vírgulas mas não compromete a lista)
+            texto_protocolos_normalizado = texto_protocolos_bruto.replace("\n", ",") # Troca 'ENTER' por vírgula -Permite que o usuário cole uma coluna do Excel ou digite com vírgulas
+            texto_protocolos_normalizado = texto_protocolos_normalizado.replace(" ", ",") # Troca Espaço por vírgula (mtos espaços viram muitas vírgulas mas não compromete a lista)
             
             # Cria a lista bruta separando as entradas pelas vírgulas da string normalizada acima (texto_normalizado)
-            raw_protocolos = texto_normalizado.split(",")
+            raw_protocolos = texto_protocolos_normalizado.split(",")
             
-            # Limpa e filtra (Sua List Comprehension)
+            # Limpa (reseta) e cria a lista de protocolos (com List Comprehension)
             self.protocolos.clear()
-            self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()])
+            self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()]) # SINTAX NOTE ABAIXO
+
+            # ============= TRATAMENTO DO CAMPO DE ÍNDICES (ScrolledText) =============
+            texto_indices_bruto = self.entry_cadastrais.get("1.0", "end-1c")
+            # fazemos as duas sanitazações em cadeia (como com os protocolos) só que na mesma linha de código
+            texto_indices_normalizado = texto_indices_bruto.replace("\n", ",").replace(" ", ",") 
+            raw_indices = texto_indices_normalizado.split(',')  # criamos a lista, separando pelas vírgulas (dos índices normalizados)
+
+            # Limpa (reseta) e cria a lista de índices (com List Comprehension)
+            self.indices_avulsos.clear()
+            self.indices_avulsos = [i.strip() for i in raw_indices if i.strip()] 
+
             # SINTAX NOTE:  [ (p.strip()) for p in raw_protocolos if(p.strip()) ] : uma compreensão de lista (CONTRAÇAÕ DE FOR): com parênteses adicionais apenas para clareza dos campos
             ''' O Loop (for p in raw_protocolos): "Para cada item (que chamaremos de p) dentro da lista raw_protocolos..."
                 O Filtro (if p.strip()): "...verifique se p.strip() é verdadeiro. (não vazio após o strip)
                 A Ação (strip()) - [no início]: Se passou no filtro, remove espaços em branco e add à lista.       
             NOTE: self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()] )   NOTE: Equivale à:
                     for p in raw_protocolos:
-                    if p.strip():          # Se não for vazio
+                    if p.strip():               # Se não for vazio
                     protocols.append(p.strip()) # Limpa e adiciona
             '''
 
-          
+            # ---------------- BARREIRA DE VALIDAÇÃO ----------------
             # Checa se as entradas estão preenchidas (não checa validade de credenciais - que é feita em tempo de execução)
             self._validar_entradas()
+            # Se esta função encontrar erro, ela lançará ValueError.
+            # O código pulará IMEDIATAMENTE a triagem e seguirá bloco 'except ValueError', onde a message box de erro é exibida.
+            # -------------------------------------------------------
+            
 
-            # Prepara UI para execução
+            # Prepara UI para execução e DETERMINA O MAXIMUM (TOTAL) DA BARRA DE PROGRESSO
             self._alternar_estado_ui(processando=True)
             self.cancelar_event.clear()
             self.progress_bar["maximum"] = len(self.protocolos)
@@ -203,13 +241,21 @@ class InterfaceApp:
         except ValueError as e:
             messagebox.showerror("Erro de Validação", str(e))
 
-    def _validar_entradas(self):
+    def _validar_entradas(self)-> None:
+        """Verifica se os campos obrigatórios foram preenchidos,
+        caso contrário lança exceção 'ValueError' para ser tratada pelo caller.
+        
+        Raises:
+            ValueError: Se credenciais estiverem vazias OU
+                        Se não houver nem Protocolo nem Índice para processar.
+                        (A exceção lançada interrompe o fluxo de quem chamou este método - e deve tratar a exceção).
+        """
         if not self.credenciais["usuario"] or not self.credenciais["senha"]:
             raise ValueError("Usuário e senha do SIATU são obrigatórios")
         if not self.credenciais["usuario_sigede"] or not self.credenciais["senha_sigede"]:
             raise ValueError("Usuário e senha do SIGEDE são obrigatórios")
-        if not self.protocolos:
-            raise ValueError("Informe ao menos um protocolo.")
+        if not self.protocolos and not self.indices_avulsos:
+            raise ValueError("Informe ao menos um protocolo ou índice cadastral para a triagem.")
 
     def _acao_cancelar(self):
         """Sinaliza o cancelamento."""
@@ -218,14 +264,24 @@ class InterfaceApp:
             self.status_label.config(text="Cancelando... aguarde.")
             self.btn_cancelar.config(state="disabled")
 
+
     def _executar_thread(self):
-        """Wrapper para rodar o callback na thread."""
+        """Wrapper para rodar o callback na thread.
+        Nesse método que o processamento efetivo dos protocolos e ICs é chamado.
+        self.processar_callback(...) é uma função injetada por dependência na criação do objeto InterfaceApp.
+        A função (dependência injetada) é a função aninhada processar(...) definida na função main de main.py.
+        O método atual, _executar_thread(self), dispara o processamento usando a função injetada no objeto interface."""
         try:
+            # Chama a função 'processar(...)' definida dentro da main - em main.py - como função aninhada.
+            # A chamada de 'processar(...)' da main é feita pela dependência injetada no objeto,
+            # aqui a referenciada por processar_callback(...) - que aponta para 'processar(...)' definida na main.
             self.processar_callback(
                 self.credenciais,
                 self.protocolos,
+                self.indices_avulsos,
                 self.cancelar_event,
-                self.atualizar_progresso
+                self.atualizar_progresso,
+                self.atualizar_status 
             )
         except Exception as e:
             # Se der erro CRÍTICO na thread (antes do main tratar), faz o log do Erro e.....
@@ -234,8 +290,17 @@ class InterfaceApp:
             # Este RESET normalmente é chamado ao fim do processamento na main.py - chamamos aqui SÓ EM CASO DE ERRO NA THREAD
             self.root.after(0, self.resetar_interface) 
 
+    # Método auxiliar chamado para atualizar o texto do Status de processamento
+    def atualizar_status(self, texto: str):
+        """Atualiza o texto da label de status na GUI."""
+        self.status_label.config(text=texto)
+        self.root.update_idletasks() # Força atualização visual imediata
+
+    # Método auxiliar para atualizar para atualização da barra de progresso.
     def atualizar_progresso(self, valor):
-        """Callback passado para o processamento atualizar a barra."""
+        """Callback passado para o processamento atualizar a barra de progresso.
+        TODO: atualmente atualiza apenas processamendo de protocolos: 
+        colocar granularidade de fases (do processamento de ICs) na barra de progresso)?"""
         self.progress_bar["value"] = valor
         self.root.update_idletasks()
 

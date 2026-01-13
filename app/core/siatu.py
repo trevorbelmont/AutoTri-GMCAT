@@ -125,7 +125,7 @@ class SiatuAuto:
                 EC.presence_of_element_located((By.ID, "exercicio"))
             )
 
-            # Diminui timeout devido ao travamento do SIATU em algumas ocasiões
+            # XXX: Diminui timeout devido ao travamento do SIATU em algumas ocasiões
             RemoteConnection.set_timeout(10)
 
             self._click(campo_exercicio)
@@ -208,7 +208,7 @@ class SiatuAuto:
         Faz o download dos arquivos da seção anexos (apenas PDFs) do Siatu.
         """
 
-        # Normaliza timeout
+        # REVIEW: Normaliza timeout
         RemoteConnection.set_timeout(120)
 
         try:

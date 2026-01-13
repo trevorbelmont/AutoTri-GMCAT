@@ -96,6 +96,10 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
         status =  f"{status_title}  -  SISCTM  :  ({indice})"
         statusUpdater(status)                         
     section_log(f"< SISCTM  -  IC: {indice} >")   # Adiciona seção SIATU pra cada índice nos LOGS
+    print("DEBUG SISCTM:")
+    print (indice)
+    print (credenciais)
+    print (pasta_indice)
     dados_sisctm: Dict[str, Any] = Sisctm().executar(indice, credenciais, pasta_indice)
 
     # ------ STATUS, LOG e EXECUÇÃO :: GOOGLE MAPS ------

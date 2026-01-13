@@ -4,6 +4,8 @@ import threading
 import os
 import sys
 from utils import logger, log_queue
+from utils import format_by_pattern, format_by_pattern2
+
 
 
 
@@ -158,12 +160,13 @@ class InterfaceApp:
         self.btn_cancelar = tk.Button(self.root, text="Cancelar", command=self._acao_cancelar, state="disabled")
         self.btn_cancelar.grid(row=7, column=1, sticky="ew", padx=5, pady=3)
 
+        # -------------------------- STATUS MESSAGE E BARRA DE PROGRESO-----------------------------
         # --- Segundo Separador (Status e LOG)---
         ttk.Separator(self.root, orient='horizontal').grid(row=8, column=0, columnspan=2, sticky="ew", pady=2)
 
         # --- Status e Progresso ---
-        self.status_label = tk.Label(self.root, text="Aguardando entrada...")
-        self.status_label.grid(row=9, column=0, sticky="ew", columnspan=2, padx=5, pady=2)
+        self.status_label = tk.Label(self.root,  height=2, text="Aguardando entrada...")
+        self.status_label.grid(row=9, column=0, sticky="ew", columnspan=2, padx=5, pady=0)
 
         self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=500, mode="determinate")
         self.progress_bar.grid(row=10, column=0, sticky="ew", columnspan=2, pady=5, padx=1)
@@ -220,6 +223,21 @@ class InterfaceApp:
                     if p.strip():               # Se não for vazio
                     protocols.append(p.strip()) # Limpa e adiciona
             '''
+
+            # Padrão PBH: 6 dígitos (Regional) + Espaço + 3 dígitos (Quadra) + Espaço + 4 dígitos (Lote)
+            MASK_PBH = "###### ### ####" 
+
+            for i in raw_indices:
+                if not i.strip(): continue
+                
+                # Aplica a máscara genérica (importada de utils)
+                # Graças à atualização, se o índice for maior que 13 dígitos, 
+                # ele formata o início e mantém o resto no final.
+                ic_fmt = format_by_pattern2(i, MASK_PBH)
+                
+                # Se retornou algo válido (não vazio), adiciona à lista
+                if ic_fmt:
+                    self.indices_avulsos.append(ic_fmt)
 
             # ---------------- BARREIRA DE VALIDAÇÃO ----------------
             # Checa se as entradas estão preenchidas (não checa validade de credenciais - que é feita em tempo de execução)

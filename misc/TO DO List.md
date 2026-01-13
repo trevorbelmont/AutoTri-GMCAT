@@ -9,14 +9,17 @@
 
 * **[???]** **'SEM PROJETOS' frequente/sempre no Urbano???** Isso é normal
 
+* **[IMPORTANTE]** Entrada de Argumentos na main: Implementar a entrada de argumentos quando roda no terminal para fazer a depuração mais viável e prática (exemplo: rodar headless ou não).
+        * Checar se os argumentos da main fiam acessíveis e funcionais no modo --one-file (via painel de propreidades do arquivo)
+
+*  **[IMPORTANTE]** MODO DEBUG:   Em especial para o módulo sistemas.py que orquestra a automação, criar uma entrada de argumentos e/ou checkbox (escondida?) na interface que detalhe o log para depuração. Em sistemas.py uma alteração importante seria: **printar num log separado, logger.DEBUG, por exemplo, o conteúdo de cada dicionário nas saídas (e entrada) das camadas de serviço da automação. Isso possibilita entender exatamente o que cada etapa tá recebendo e retornando e reproduzir falhas mais rapidamente - sem ter que rodar a automação toda.
+
 * Padronizar os argumentos da classe de interface (app/pipeline/interface/base.py) para dar conta de todas as classes de serviço (em app/pipeline/sistemas.py)
 
 * **[DRY - _click(...) bot-core]**Retirar as implementações repetitivas do método _click() em todos os bot-cores (todos os módulos em app/core/) e levar essa implementação para uma única definição porém na classe base ou para um método utilitário - para diminuir repetição de código e adequar melhor ao SOLID.
 
 * **[DRY - _interact(...) bot-core]** Subir a definição dos métodos _interact(...), o _click(...) mais resiliente, definidos duas vezes (em sisctm.py e google.py) para a classe base - pois este é um método universal e agnóstico quanto ao site ou plataformas que estamos (e pode ser usado até em outras aplicações de autmação de navegação)
 
-* **[IMPORTANTE]** Entrada de Argumentos na main: Implementar a entrada de argumentos quando roda no terminal para fazer a depuração mais viável e prática (exemplo: rodar headless ou não).
-        * Checar se os argumentos da main fiam acessíveis e funcionais no modo --one-file (via painel de propreidades do arquivo)
 
 * **[Feito - AutoTRI 1.3]** APersistência dos Logs de triagem: Após gerar todo o log e salvar A ÚLTIMA TRIAGEM na raíz do projeto/executável copiar o arquivo de log PRA DENTRO DA PASTA DE RESULTADOS - para que os logs não se percam na próxima triagem e tudo relativo à quela triagem fique num lugar só.
 

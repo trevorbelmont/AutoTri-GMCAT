@@ -1,7 +1,7 @@
 import traceback
 import time
 import os
-from typing import Dict, Optional, Any, List
+from typing import Dict, Optional, Any, List, Union, Iterable
 
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
@@ -54,32 +54,50 @@ class SisctmAuto:
         except Exception:
             self.driver.execute_script("arguments[0].click();", element)
 
-    # Definie um método para achar elementos e clicar neles (ou não) robusto, que devolve o elemento encontrado.
-    # Usa **kwargs (keyword arguments para gerar automaticamente o dicionário de seletores na ordem passada)
-    # TODO: Mover Este método para cima na hierarquia de classes (assim como _click(...), este método é universal para os bot-cores todos
+
+    # Define um método universal para localizar elementos e interagir com eles (clicar ou não),
+    # utilizando múltiplas estratégias de busca com lógica de fallback.
+    #   - Usa **kwargs para definir estratégias de localização (id, xpath, css, etc.).
+    #   - A ordem dos kwargs define a prioridade ENTRE estratégias.
+    #   - Cada estratégia pode receber uma string única ou uma lista de strings,
+    #   onde a ordem interna define o fallback DENTRO da mesma estratégia.
+    #
+    # TODO: Mover este método para cima na hierarquia de classes
+    #       (assim como _click(...), este método é universal para todos os bot-cores).
     def _interact(
-        self, 
-        nome_log: str, 
+        self,
+        nome_log: str,
         timeout_tentativa: float = 2.0,
         clicar: bool = True,
-        **seletores: str
+        **seletores: Union[str, Iterable[str]]
     ) -> Optional[WebElement]:
-        """ Um click ou element finder mais robusto com lógica de fallback em várias etpas implementada.
-        Localiza um elemento usando estratégias de fallback baseadas nos argumentos passados e na ordem que são passados.
+        """ Um click ou element finder mais robusto com lógica de fallback em dois níveis e tentativas em várias etapas implementada.
+        Localiza um elemento usando estratégias de fallback prioritários, baseados na ordem que os argumentos passados.
+        Além da procura do elemento na ordem das estratégias passadas por argumentos, há também prioridade de busca dentro do mesmo tipo de estratégia.
         Retorna o WebElement encontrado para uso posterior, caso necessário.
-
-        Exemplo de uso:
-            self._interagir("Botão", id="meu_id", xpath="//div", click=True)
-
+        
         :param nome_log: Nome para registro no log.
         :param timeout_tentativa: [OPCIONAL - default: 2.0 segs] Tempo máximo de espera pra cada seletor achar o elmento - em segs.
         :param clicar: [[OPCIONAL - default: True] Se True, executa o _click() automaticamente ao encontrar.
-        :param **seletores: Pares de estratégia=valor (ex: id="x", name="y", xpath="z").
-                            A ordem dos argumentos define a prioridade.
+        :param **seletores: Pares de estratégia=valor ou estratégia=[valores].
+                    A ordem dos argumentos define a prioridade entre estratégias,
+                    e a ordem interna, quando usando listas, define o fallback dentro da mesma estratégia.
         :return: O WebElement encontrado ou None, se falhar em todos os seletores.
+        
+        Exemplo de uso:
+            self._interact(
+                nome_log="Botão Exemplo",
+                id="meu_id",
+                xpath=[
+                    "//div[@class='primary']",
+                    "//div[@class='secondary']"
+                ],
+                css=".botao-fallback"
+            )
         """
         # Define os tipo de métodos de procura válidos (tags do código fonte)
         # Útil para evitar que tags não previstas no selenium sejam testadas
+        
         mapa_by = {
             'id': By.ID,
             'name': By.NAME,
@@ -89,36 +107,43 @@ class SisctmAuto:
             'tag': By.TAG_NAME
         }
 
-        tempo_gasto = 0
-        
-        # Itera sobre os argumentos passados (kwargs preserva ordem no Python 3.7+)
-        for estrategia, valor_seletor in seletores.items():
+        tempo_gasto = 0.0
+
+        for estrategia, valores in seletores.items():
             if estrategia not in mapa_by:
-                continue # Ignora chaves inválidas
+                continue
 
             by_type = mapa_by[estrategia]
-            
-            try:
-                # Tenta encontrar
-                elemento = WebDriverWait(self.driver, timeout_tentativa).until(
-                    EC.element_to_be_clickable((by_type, valor_seletor))
-                )
-                
-                tempo_gasto += timeout_tentativa
-                logger.info(f"{nome_log} encontrado via '{estrategia}' em menos de {tempo_gasto:.1f} segs de busca.")
-                
-                # Se encontrou elemento e click é true, clica no elemento antes de devolvê-lo
-                if clicar:
-                    self._click(elemento)
-                
-                return elemento
 
-            except Exception:
-                tempo_gasto += timeout_tentativa
-                continue # Falhou, tenta o próximo argumento
+            # Normaliza para lista (mantém compatibilidade)
+            if isinstance(valores, str):
+                valores = [valores]
 
-        logger.error(f"ERRO: {nome_log} não encontrado após todas as {len(seletores)} tentativas.\n"
-                     "Tempo de procura por {nome_log}: {tempo_gasto:.1f} segs")
+            for valor_seletor in valores:
+                try:
+                    elemento = WebDriverWait(self.driver, timeout_tentativa).until(
+                        EC.element_to_be_clickable((by_type, valor_seletor))
+                    )
+
+                    tempo_gasto += timeout_tentativa
+                    logger.info(
+                        f"{nome_log} encontrado via '{estrategia}' "
+                        f"em {tempo_gasto:.1f}s."
+                    )
+
+                    if clicar:
+                        self._click(elemento)
+
+                    return elemento
+
+                except Exception:
+                    tempo_gasto += timeout_tentativa
+                    continue
+
+        logger.error(
+            f"ERRO: {nome_log} não encontrado após todas as tentativas. "
+            f"Tempo total: {tempo_gasto:.1f}s."
+        )
         return None
     
 
@@ -560,171 +585,187 @@ class SisctmAuto:
 
     def capturar_areas(self) -> Dict[str, Optional[str]]:
         """
-        Captura dados tabulares do painel lateral após a seleção do lote.
+        Captura dados tabulares exibidos no painel lateral de Informações apósa seleção de um lote no mapa.
+        A rotina garante previamente o foco no painel de Informações e realiza extrações independentes por bloco funcional, 
+        permitindo falhas parciais sem comprometer a execução completa.
+
+    Blocos processados de forma independente:
+      - IPTU CTM GEO (áreas e dados cadastrais);
+      - Endereço formatado a partir dos campos disponíveis;
+      - Lote CP - ATIVO (área informada).
         
-        :return: Dicionário contendo os dados extraídos:
+        :return: Dicionário contendo os dados extraídos (ou None, em caso de falha total):
                  - 'iptu_ctm_geo_area': Área do IPTU.
                  - 'iptu_ctm_geo_area_terreno': Área do terreno.
                  - 'endereco_ctmgeo': Endereço formatado completo.
                  - 'lote_cp_ativo_area_informada': Área informada do loteamento.
-                 Retorna dicionário vazio em caso de erro crítico.
+                 Retorna dicionário vazio em caso de erro crítico - Não encontrar o Painel Lateral.
         """
         resultado: Dict[str, Optional[str]] = {} # Dicionário que será retornado
 
-        # XXX : na triagem de ICs o painel seletor não parece ficar aberto em foco por padrão. 
-        # TODO vamos clicar no botão do painel para garantir que as info e botões do painel estejam disponíveis/visíveis.
-        
+        logger.info("Garantindo foco no painel de informações...")
+        # Interage (encontra e clica) com o seletor da aba Informações - Isso garante o foco e visibilidade da tabela
+        # Importante para triagem via IC e robustez geral.
+        print(self._interact(nome_log="Aba Informações (sidebar)", #HACK: Tirar este rpint de DEBUG
+            xpath=[
+                # 1) Mais forte
+                "//div[contains(@class,'q-item--clickable')]"
+                "//i[contains(@class,'mdi-map-marker-question-outline')]"
+                "/ancestor::div[contains(@class,'q-item')]",
+
+                # 2) Ícone + subida
+                "//i[contains(@class,'mdi-map-marker-question-outline')]"
+                "/ancestor::div[contains(@class,'q-item')]",
+
+                # 3) Role + classe funcional
+                "//div[@role='listitem' and contains(@class,'q-item--clickable')]",
+            ],
+            css=[
+                # 4) Fallback CSS
+                "div.q-item--clickable i.mdi-map-marker-question-outline"
+            ]
+        ))
+
         # O seletor da interface atualizada (resolve o problema de captura de áreas falhando)
         PAINEL_SELETOR = "#q-app > div > div.q-drawer-container > aside > div > div.fit.row.no-scroll > div.col.bg-white > div > div.col.relative-position > div"
 
         try:
-            logger.info("Iniciando captura de áreas do painel lateral (com espera)")
-            input("PAUSA PRA DEBUG 1: APERTE ENTER PARA CONTINUAR") #¬¬
-            
-            # Espera até 10s (o timeout padrão) pelo elemento painel para resolver o NoSuchElementException
             painel = self.wait.until(
-                EC.presence_of_element_located((By.CSS_SELECTOR, PAINEL_SELETOR)) #EC = Expected Condition
+                EC.presence_of_element_located((By.CSS_SELECTOR, PAINEL_SELETOR))
             )
-
-            #self._click(painel)
-            
-            input("PAUSA PRA DEBUG 2: APERTE ENTER PARA CONTINUAR") #¬¬
-            
-            # Função auxiliar para ativar item
-            def ativar_item(nome_item: str) -> Optional[object]:  # str -> Optional[object]
-                try:
-                    item = painel.find_element(
-                        By.XPATH,
-                        f".//div[contains(@class,'q-item') and .//div[contains(text(),'{nome_item}')]]",
+        except TimeoutException:
+            logger.warning("ALERTA CRÍTICO: Painel lateral de Informações não encontrado após clique. Retornando vazio na ETAPA SISCTM.")
+            return {} # Sai graciosamente sem quebrar o resto do código
+                                   
+        # Função auxiliar para ativar item
+        def ativar_item(nome_item: str) -> Optional[object]:  # str -> Optional[object]
+            try:
+                item = painel.find_element(
+                    By.XPATH,
+                    f".//div[contains(@class,'q-item') and .//div[contains(text(),'{nome_item}')]]",
+                )
+                botao = item.find_element(By.XPATH, ".//div[@role='button']")
+                aria = botao.get_attribute("aria-expanded")
+                if aria != "true":
+                    logger.info(f"{nome_item} não está ativo. Ativando...")
+                    botao.click()   # XXX: TODO: migra para utilizar o _click() definido na classe - mais robusto 
+                    WebDriverWait(botao, 5).until(
+                        lambda x: x.get_attribute("aria-expanded") == "true"
                     )
-                    botao = item.find_element(By.XPATH, ".//div[@role='button']")
-                    aria = botao.get_attribute("aria-expanded")
-                    if aria != "true":
-                        logger.info(f"{nome_item} não está ativo. Ativando...")
-                        botao.click()
-                        WebDriverWait(botao, 5).until(
-                            lambda x: x.get_attribute("aria-expanded") == "true"
+                    logger.info(f"{nome_item} ativado")
+                    time.sleep(3)
+                else:
+                    logger.info(f"{nome_item} já está ativo")
+                return item
+            except Exception as e:
+                logger.info(
+                    f"Erro ao ativar item {nome_item}: Camada {nome_item} não encontrada."
+                )
+                return None # Garante que a função aninhada sempre retorne algo (None se falhar)
+
+        # ----------------------------------------------------------------------
+        # BLOCO INDEPENDENTE:  IPTU CTM GEO (Processamento granular)
+        # ----------------------------------------------------------------------
+        iptu_item = ativar_item("IPTU CTM GEO")
+        
+        if iptu_item: 
+            # 1.1 Captura Área Construída
+            try:
+                linha_area = WebDriverWait(iptu_item, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, ".//table//tr[td[contains(text(),'ÁREA')]]/td[2]")
+                    )
+                )
+                valor = linha_area.text.strip()
+                resultado["iptu_ctm_geo_area"] = valor
+                logger.info(f"[SUCESSO] Área Construída (IPTU): {valor}")
+            except TimeoutException:
+                logger.warning("Não foi possível capturar área IPTU CTM GEO")
+                resultado["iptu_ctm_geo_area"] = None
+
+            # 1.2 Captura Área Terreno
+            try:
+                linha_area_terreno = WebDriverWait(iptu_item, 5).until(
+                    EC.presence_of_element_located(
+                        (By.XPATH, ".//table//tr[td[contains(text(),'AREA_TERRENO')]]/td[2]")
+                    )
+                )
+                valor = linha_area_terreno.text.strip()
+                resultado["iptu_ctm_geo_area_terreno"] = valor
+                logger.info(f"[SUCESSO] Área Terreno (IPTU): {valor}")
+            except TimeoutException:
+                logger.warning("Não foi possível capturar AREA TERRENO")
+                resultado["iptu_ctm_geo_area_terreno"] = None
+
+            # 1.3 Captura Campos do Endereço
+            try:
+                campos: Dict[str, str] = {
+                    "tipo_logradouro": ".//table//tr[24]/td[2]",
+                    "nome_logradouro": ".//table//tr[25]/td[2]",
+                    "numero_imovel": ".//table//tr[26]/td[2]",
+                    "complemento": ".//table//tr[27]/td[2]",
+                    "cep": ".//table//tr[28]/td[2]",
+                }
+
+                valores: Dict[str, str] = {} 
+                for chave, xpath in campos.items():
+                    try:
+                        elemento = WebDriverWait(iptu_item, 2).until(
+                            EC.presence_of_element_located((By.XPATH, xpath))
                         )
-                        logger.info(f"{nome_item} ativado")
-                        time.sleep(3)
+                        valores[chave] = elemento.text.strip()
+                    except TimeoutException:
+                        valores[chave] = ""
+
+                # Tratamento: Remove pontos do número do imóvel
+                valores["numero_imovel"] = valores["numero_imovel"].replace(".", "")
+
+                # Monta o endereço no formato desejado
+                endereco = f"{valores['tipo_logradouro']} {valores['nome_logradouro']}, {valores['numero_imovel']}"
+                if valores["complemento"]:
+                    endereco += f" {valores['complemento']}"
+                endereco += f" - Belo Horizonte - MG, {valores['cep']}"
+
+                resultado["endereco_ctmgeo"] = endereco
+                logger.info(f"[SUCESSO] Endereço montado: {endereco}")
+
+            except Exception as e:
+                logger.warning(f"Não foi possível capturar endereço CTM GEO: {e}")
+                resultado["endereco_ctmgeo"] = None
+        else:
+            logger.warning("IPTU CTM GEO não foi encontrado/ativado! Pulando captura de dados do grupo (IPTU).")
+
+
+        # ----------------------------------------------------------------------
+        # BLOCO INDEPENDENTE: Lote CP - ATIVO (Processamento independente)
+        # ----------------------------------------------------------------------
+        lote_cp_item = ativar_item("Lote CP - ATIVO")
+
+        if lote_cp_item: 
+            try:
+                # Captura a tabela e todas as linhas
+                tabela = lote_cp_item.find_element(By.TAG_NAME, "table")
+                linhas: List[object] = tabela.find_elements(By.TAG_NAME, "tr") 
+                
+                # Validação: Captura a sexta linha (índice 5) onde deve estar a área
+                if len(linhas) >= 6:
+                    linha_area = linhas[5]
+                    colunas: List[object] = linha_area.find_elements(By.TAG_NAME, "td") 
+                    if len(colunas) >= 2:
+                        valor: str = colunas[1].text.strip() 
+                        resultado["lote_cp_ativo_area_informada"] = valor
+                        logger.info(f"[SUCESSO] Área Lote CP: {valor}")
                     else:
-                        logger.info(f"{nome_item} já está ativo")
-                    return item
-                except Exception as e:
-                    logger.info(
-                        f"Erro ao ativar item {nome_item}: Camada {nome_item} não encontrada."
-                    )
-                    return None # Garante que a função aninhada sempre retorne algo (None se falhar)
-
-            # IPTU CTM GEO
-            iptu_item = ativar_item("IPTU CTM GEO")
-            time.sleep(2)
-            
-            if iptu_item: # Verifica se o item foi ativado com sucesso
-                # Aguarda a linha com "ÁREA" existir
-                try:
-                    linha_area = WebDriverWait(iptu_item, 5).until(
-                        EC.presence_of_element_located(
-                            (By.XPATH, ".//table//tr[td[contains(text(),'ÁREA')]]/td[2]")
-                        )
-                    )
-                    resultado["iptu_ctm_geo_area"] = linha_area.text.strip()
-                except TimeoutException:
-                    logger.warning("Não foi possível capturar área IPTU CTM GEO")
-                    resultado["iptu_ctm_geo_area"] = None
-
-                # Aguarda a linha com "AREA_TERRENO" existir
-                try:
-                    linha_area_terreno = WebDriverWait(iptu_item, 5).until(
-                        EC.presence_of_element_located(
-                            (
-                                By.XPATH,
-                                ".//table//tr[td[contains(text(),'AREA_TERRENO')]]/td[2]",
-                            )
-                        )
-                    )
-                    resultado["iptu_ctm_geo_area_terreno"] = linha_area_terreno.text.strip()
-                except TimeoutException:
-                    logger.warning("Não foi possível capturar AREA TERRENO")
-                    resultado["iptu_ctm_geo_area_terreno"] = None
-
-                # Captura campos do endereço
-                try:
-                    # Tipagem do dicionário de mapeamento
-                    campos: Dict[str, str] = {
-                        "tipo_logradouro": ".//table//tr[24]/td[2]",
-                        "nome_logradouro": ".//table//tr[25]/td[2]",
-                        "numero_imovel": ".//table//tr[26]/td[2]",
-                        "complemento": ".//table//tr[27]/td[2]",
-                        "cep": ".//table//tr[28]/td[2]",
-                    }
-
-                    valores: Dict[str, str] = {} # Tipagem do dicionário de valores
-                    for chave, xpath in campos.items():
-                        try:
-                            elemento = WebDriverWait(iptu_item, 5).until(
-                                EC.presence_of_element_located((By.XPATH, xpath))
-                            )
-                            valores[chave] = elemento.text.strip()
-                        except TimeoutException:
-                            valores[chave] = ""
-
-                    # Remove pontos do número do imóvel
-                    valores["numero_imovel"] = valores["numero_imovel"].replace(".", "")
-
-                    # Monta o endereço no formato desejado (padrão Google, sem formatar CEP)
-                    endereco = f"{valores['tipo_logradouro']} {valores['nome_logradouro']}, {valores['numero_imovel']}"
-                    if valores["complemento"]:
-                        endereco += f" {valores['complemento']}"
-                    endereco += f" - Belo Horizonte - MG, {valores['cep']}"
-
-                    resultado["endereco_ctmgeo"] = endereco
-                except Exception as e:
-                    logger.warning(f"Não foi possível capturar endereço CTM GEO: {e}")
-                    resultado["endereco_ctmgeo"] = None
-            else:
-                logger.warning("IPTU CTM GEO não foi encontrado/ativado, pulando captura de dados.")
-
-
-            # Lote CP - ATIVO
-            lote_cp_item = ativar_item("Lote CP - ATIVO")
-
-            if lote_cp_item: # Verifica se o item foi ativado com sucesso
-                try:
-                    # Captura todas as linhas da tabela
-                    tabela = lote_cp_item.find_element(By.TAG_NAME, "table")
-                    # Note: O elemento 'table' já foi encontrado de forma segura.
-                    linhas: List[object] = tabela.find_elements(By.TAG_NAME, "tr") # Tipagem
-                    
-                    # Captura a sexta linha e segunda coluna
-                    if len(linhas) >= 6:
-                        linha_area = linhas[5]
-                        colunas: List[object] = linha_area.find_elements(By.TAG_NAME, "td") # Tipagem
-                        if len(colunas) >= 2:
-                            valor: str = colunas[1].text.strip() # Tipagem
-                            resultado["lote_cp_ativo_area_informada"] = valor
-                        else:
-                             logger.warning("Não foi possível encontrar a coluna de valor na linha de área.")
-                             resultado["lote_cp_ativo_area_informada"] = None
-                    else:
-                        logger.warning("Tabela Lote CP - ATIVO não possui linhas suficientes.")
-                        resultado["lote_cp_ativo_area_informada"] = None
-                        
-                except Exception as e:
-                    logger.warning(f"Não foi possível capturar área Lote CP - ATIVO: {e}")
+                         logger.warning("Não foi possível encontrar a coluna de valor na linha de área.")
+                         resultado["lote_cp_ativo_area_informada"] = None
+                else:
+                    logger.warning("Tabela Lote CP - ATIVO não possui linhas suficientes.")
                     resultado["lote_cp_ativo_area_informada"] = None
-            else:
-                logger.warning("Lote CP - ATIVO não foi encontrado/ativado, pulando captura de área.")
+                    
+            except Exception as e:
+                logger.warning(f"Não foi possível capturar área Lote CP - ATIVO: {e}")
+                resultado["lote_cp_ativo_area_informada"] = None
+        else:
+            logger.warning("Lote CP - ATIVO não foi encontrado/ativado, pulando captura de área.")
 
-            input("PAUSA PRA DEBUG 3: APERTE ENTER PARA Fechar o SISCTM") #¬¬
-            return resultado
-
-        except NoSuchElementException as e:
-            logger.error(f"Elemento não encontrado: {e}")
-            return {}
-        except ElementClickInterceptedException as e:
-            logger.error(f"Não foi possível clicar no item: {e}")
-            return {}
-        except Exception as e:
-            logger.error(f"Erro inesperado ao capturar áreas: {e}")
-            return {}
+        return resultado

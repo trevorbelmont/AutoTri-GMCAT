@@ -1,4 +1,5 @@
 from .logger import logger, log_queue, log_path, section_log
+from .formatters import format_by_pattern, format_by_pattern2
 from .pastas import abrir_pasta, criar_pasta_resultados
 from .web_driver import driver_context
 from .relatorio import (
@@ -14,8 +15,10 @@ __all__ = [
     
     "logger",
     "log_queue",
-    "log_path"
+    "log_path",
     "section_log",
+    "format_by_pattern",
+    "format_by_pattern2",
     "abrir_pasta",
     "driver_context",
     "criar_pasta_resultados",

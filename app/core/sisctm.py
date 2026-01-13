@@ -1,10 +1,9 @@
 import traceback
 import time
 import os
-from typing import Dict, Optional, Any, List # Importações adicionais
+from typing import Dict, Optional, Any, List
 
-from utils import logger
-
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.keys import Keys
 from selenium.common.exceptions import (
@@ -16,6 +15,9 @@ from selenium.common.exceptions import (
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+
+
+from utils import logger
 
 
 class SisctmAuto:
@@ -52,6 +54,73 @@ class SisctmAuto:
         except Exception:
             self.driver.execute_script("arguments[0].click();", element)
 
+    # Definie um método para achar elementos e clicar neles (ou não) robusto, que devolve o elemento encontrado.
+    # Usa **kwargs (keyword arguments para gerar automaticamente o dicionário de seletores na ordem passada)
+    # TODO: Mover Este método para cima na hierarquia de classes (assim como _click(...), este método é universal para os bot-cores todos
+    def _interact(
+        self, 
+        nome_log: str, 
+        timeout_tentativa: float = 2.0,
+        clicar: bool = True,
+        **seletores: str
+    ) -> Optional[WebElement]:
+        """ Um click ou element finder mais robusto com lógica de fallback em várias etpas implementada.
+        Localiza um elemento usando estratégias de fallback baseadas nos argumentos passados e na ordem que são passados.
+        Retorna o WebElement encontrado para uso posterior, caso necessário.
+
+        Exemplo de uso:
+            self._interagir("Botão", id="meu_id", xpath="//div", click=True)
+
+        :param nome_log: Nome para registro no log.
+        :param timeout_tentativa: [OPCIONAL - default: 2.0 segs] Tempo máximo de espera pra cada seletor achar o elmento - em segs.
+        :param clicar: [[OPCIONAL - default: True] Se True, executa o _click() automaticamente ao encontrar.
+        :param **seletores: Pares de estratégia=valor (ex: id="x", name="y", xpath="z").
+                            A ordem dos argumentos define a prioridade.
+        :return: O WebElement encontrado ou None, se falhar em todos os seletores.
+        """
+        # Define os tipo de métodos de procura válidos (tags do código fonte)
+        # Útil para evitar que tags não previstas no selenium sejam testadas
+        mapa_by = {
+            'id': By.ID,
+            'name': By.NAME,
+            'xpath': By.XPATH,
+            'css': By.CSS_SELECTOR,
+            'class_name': By.CLASS_NAME,
+            'tag': By.TAG_NAME
+        }
+
+        tempo_gasto = 0
+        
+        # Itera sobre os argumentos passados (kwargs preserva ordem no Python 3.7+)
+        for estrategia, valor_seletor in seletores.items():
+            if estrategia not in mapa_by:
+                continue # Ignora chaves inválidas
+
+            by_type = mapa_by[estrategia]
+            
+            try:
+                # Tenta encontrar
+                elemento = WebDriverWait(self.driver, timeout_tentativa).until(
+                    EC.element_to_be_clickable((by_type, valor_seletor))
+                )
+                
+                tempo_gasto += timeout_tentativa
+                logger.info(f"{nome_log} encontrado via '{estrategia}' em menos de {tempo_gasto:.1f} segs de busca.")
+                
+                # Se encontrou elemento e click é true, clica no elemento antes de devolvê-lo
+                if clicar:
+                    self._click(elemento)
+                
+                return elemento
+
+            except Exception:
+                tempo_gasto += timeout_tentativa
+                continue # Falhou, tenta o próximo argumento
+
+        logger.error(f"ERRO: {nome_log} não encontrado após todas as {len(seletores)} tentativas.\n"
+                     "Tempo de procura por {nome_log}: {tempo_gasto:.1f} segs")
+        return None
+    
 
     def login(self) -> bool:
         """Realiza login no Keycloak PBH em páginas Vue.js."""
@@ -501,20 +570,26 @@ class SisctmAuto:
                  Retorna dicionário vazio em caso de erro crítico.
         """
         resultado: Dict[str, Optional[str]] = {} # Dicionário que será retornado
+
+        # XXX : na triagem de ICs o painel seletor não parece ficar aberto em foco por padrão. 
+        # TODO vamos clicar no botão do painel para garantir que as info e botões do painel estejam disponíveis/visíveis.
         
         # O seletor da interface atualizada (resolve o problema de captura de áreas falhando)
         PAINEL_SELETOR = "#q-app > div > div.q-drawer-container > aside > div > div.fit.row.no-scroll > div.col.bg-white > div > div.col.relative-position > div"
 
         try:
             logger.info("Iniciando captura de áreas do painel lateral (com espera)")
-            #input("PAUSA PRA DEBUG. APERTE ENTER PARA CONTINUAR") #¬¬
+            input("PAUSA PRA DEBUG 1: APERTE ENTER PARA CONTINUAR") #¬¬
             
             # Espera até 10s (o timeout padrão) pelo elemento painel para resolver o NoSuchElementException
             painel = self.wait.until(
                 EC.presence_of_element_located((By.CSS_SELECTOR, PAINEL_SELETOR)) #EC = Expected Condition
             )
-            
 
+            #self._click(painel)
+            
+            input("PAUSA PRA DEBUG 2: APERTE ENTER PARA CONTINUAR") #¬¬
+            
             # Função auxiliar para ativar item
             def ativar_item(nome_item: str) -> Optional[object]:  # str -> Optional[object]
                 try:
@@ -641,6 +716,7 @@ class SisctmAuto:
             else:
                 logger.warning("Lote CP - ATIVO não foi encontrado/ativado, pulando captura de área.")
 
+            input("PAUSA PRA DEBUG 3: APERTE ENTER PARA Fechar o SISCTM") #¬¬
             return resultado
 
         except NoSuchElementException as e:

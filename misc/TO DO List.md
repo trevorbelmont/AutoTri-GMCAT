@@ -7,9 +7,16 @@
         * **Comunicação:** Luzes (estilo semáforo), balões de mensagem, Message Box (como já tem), Janela secundária.
         * **Comunicação de Duas Vias?** Indicar (na interface) mandar e-mail pro 4B para notificar problemas/sugestões? Ter um campo de enviar e-mails (padronizados) no próprio AutoTri???
 
+* **[???]** **'SEM PROJETOS' frequente/sempre no Urbano???** Isso é normal
+
 * Padronizar os argumentos da classe de interface (app/pipeline/interface/base.py) para dar conta de todas as classes de serviço (em app/pipeline/sistemas.py)
 
-* Retirar as implementações repetitivas do método _click() em todos os bot-cores (todos os módulos em app/core/) e levar essa implementação para a classe base ou para um método utilitário - para diminuir repetição de código e adequar melhor ao SOLID.
+* **[DRY - _click(...) bot-core]**Retirar as implementações repetitivas do método _click() em todos os bot-cores (todos os módulos em app/core/) e levar essa implementação para uma única definição porém na classe base ou para um método utilitário - para diminuir repetição de código e adequar melhor ao SOLID.
+
+* **[DRY - _interact(...) bot-core]** Subir a definição dos métodos _interact(...), o _click(...) mais resiliente, definidos duas vezes (em sisctm.py e google.py) para a classe base - pois este é um método universal e agnóstico quanto ao site ou plataformas que estamos (e pode ser usado até em outras aplicações de autmação de navegação)
+
+* **[IMPORTANTE]** Entrada de Argumentos na main: Implementar a entrada de argumentos quando roda no terminal para fazer a depuração mais viável e prática (exemplo: rodar headless ou não).
+        * Checar se os argumentos da main fiam acessíveis e funcionais no modo --one-file (via painel de propreidades do arquivo)
 
 * **[Feito - AutoTRI 1.3]** APersistência dos Logs de triagem: Após gerar todo o log e salvar A ÚLTIMA TRIAGEM na raíz do projeto/executável copiar o arquivo de log PRA DENTRO DA PASTA DE RESULTADOS - para que os logs não se percam na próxima triagem e tudo relativo à quela triagem fique num lugar só.
 

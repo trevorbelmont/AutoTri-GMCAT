@@ -202,17 +202,7 @@ class InterfaceApp:
             
             # Limpa (reseta) e cria a lista de protocolos (com List Comprehension)
             self.protocolos.clear()
-            self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()]) # SINTAX NOTE ABAIXO
-
-            # ============= TRATAMENTO DO CAMPO DE ÍNDICES (ScrolledText) =============
-            texto_indices_bruto = self.entry_cadastrais.get("1.0", "end-1c")
-            # fazemos as duas sanitazações em cadeia (como com os protocolos) só que na mesma linha de código
-            texto_indices_normalizado = texto_indices_bruto.replace("\n", ",").replace(" ", ",") 
-            raw_indices = texto_indices_normalizado.split(',')  # criamos a lista, separando pelas vírgulas (dos índices normalizados)
-
-            # Limpa (reseta) e cria a lista de índices (com List Comprehension)
-            self.indices_avulsos.clear()
-            self.indices_avulsos = [i.strip() for i in raw_indices if i.strip()] 
+            self.protocolos.extend([p.strip() for p in raw_protocolos if p.strip()])
 
             # SINTAX NOTE:  [ (p.strip()) for p in raw_protocolos if(p.strip()) ] : uma compreensão de lista (CONTRAÇAÕ DE FOR): com parênteses adicionais apenas para clareza dos campos
             ''' O Loop (for p in raw_protocolos): "Para cada item (que chamaremos de p) dentro da lista raw_protocolos..."
@@ -224,21 +214,27 @@ class InterfaceApp:
                     protocols.append(p.strip()) # Limpa e adiciona
             '''
 
+            # ============= TRATAMENTO DO CAMPO DE ÍNDICES (ScrolledText) =============
+            texto_indices_bruto = self.entry_cadastrais.get("1.0", "end-1c")
+            # fazemos as duas sanitazações em cadeia (como com os protocolos) só que na mesma linha de código
+            texto_indices_normalizado = texto_indices_bruto.replace("\n", ",").replace(" ", ",") 
+            raw_indices = texto_indices_normalizado.split(',')  # criamos a lista, separando pelas vírgulas (dos índices normalizados)
+
+            # Limpa (reseta) e cria a lista de índices (com List Comprehension)
+            self.indices_avulsos.clear()
+            
             # Padrão PBH: 6 dígitos (Regional) + Espaço + 3 dígitos (Quadra) + Espaço + 4 dígitos (Lote)
             MASK_PBH = "###### ### ####" 
 
             for i in raw_indices:
                 if not i.strip(): continue
                 
-                # Aplica a máscara genérica (importada de utils)
-                # Graças à atualização, se o índice for maior que 13 dígitos, 
-                # ele formata o início e mantém o resto no final.
-                ic_fmt = format_by_pattern2(i, MASK_PBH)
                 
-                # Se retornou algo válido (não vazio), adiciona à lista
+                ic_fmt = format_by_pattern2(i.strip(), MASK_PBH)
+                
                 if ic_fmt:
                     self.indices_avulsos.append(ic_fmt)
-
+            
             # ---------------- BARREIRA DE VALIDAÇÃO ----------------
             # Checa se as entradas estão preenchidas (não checa validade de credenciais - que é feita em tempo de execução)
             self._validar_entradas()

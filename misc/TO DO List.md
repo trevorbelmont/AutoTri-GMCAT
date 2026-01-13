@@ -18,6 +18,8 @@
 
 *  **[IMPORTANTE]** MODO DEBUG:   Em especial para o módulo sistemas.py que orquestra a automação, criar uma entrada de argumentos e/ou checkbox (escondida?) na interface que detalhe o log para depuração. Em sistemas.py uma alteração importante seria: **printar num log separado, logger.DEBUG, por exemplo, o conteúdo de cada dicionário nas saídas (e entrada) das camadas de serviço da automação. Isso possibilita entender exatamente o que cada etapa tá recebendo e retornando e reproduzir falhas mais rapidamente - sem ter que rodar a automação toda.
 
+* **SUMÁRIO DE ERROS MAIS DETALHADO:** Nos logs, ao fim da triagem, além da contagem de protocolos e ICs totais (via triagem de Protocolo + via triagem de ICs), adicionar também um sumário dos erros que aconteceram em cada protocolo/cadastral, para rápida identificação de erros de processamento. **Sumário não verboso, mas informativo.** 
+
 * **[INTERFACE]** **Barra de Progresso:** 
   * Melhorar a granularidade do avanço da barra de progresso - implmentar cálculo inteligente auto ajustável (para cobrir não só avanço de protocolo, mas tb **progresso na traigem dos ICs no protocolo e fase da triagem do IC**)
   * Aplica padrão formatter_by_pattern2(...) nos ICs da Status Message

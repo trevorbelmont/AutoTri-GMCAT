@@ -1,4 +1,8 @@
+# TO DO List
+
 * **[URGENTE / PRIORITÁRIO]** **ADD TRIAGEM POR ÍNDICES CADASTRIAS:** Tem que fazer... É Isso...
+        **>> FUNDAMENTAL >> :** Índices cadastrais SEMPRE tem formatação padrão? [padrão 123456 123 1234 (Regional, Quadra, Lote).]???
+        **>> UX, UI, ROBUSTEZ >>:** Saber se existe realmente um padrão sempre fixo, determina a robustez (e risco da implementação) e a interção dos usuários com o campo de Triagem via Cadastrias
 
 * **[PRIORITÁRIO]** **Checar frequência do status (print) "SEM PROJETO" do URBANO** O print vindo do Urbano tá mostrando sem projeto com frequência - é normal
 
@@ -14,12 +18,18 @@
 
 *  **[IMPORTANTE]** MODO DEBUG:   Em especial para o módulo sistemas.py que orquestra a automação, criar uma entrada de argumentos e/ou checkbox (escondida?) na interface que detalhe o log para depuração. Em sistemas.py uma alteração importante seria: **printar num log separado, logger.DEBUG, por exemplo, o conteúdo de cada dicionário nas saídas (e entrada) das camadas de serviço da automação. Isso possibilita entender exatamente o que cada etapa tá recebendo e retornando e reproduzir falhas mais rapidamente - sem ter que rodar a automação toda.
 
+* **[INTERFACE]** **Barra de Progresso:** 
+  * Melhorar a granularidade do avanço da barra de progresso - implmentar cálculo inteligente auto ajustável (para cobrir não só avanço de protocolo, mas tb **progresso na traigem dos ICs no protocolo e fase da triagem do IC**)
+  * Aplica padrão formatter_by_pattern2(...) nos ICs da Status Message
+  * organizar a contagem do "[IC 6/9]" pra refletir os ICs sendo triados na etap no '9' ao invés da contagem total de ICs triados em todas etapas
+
 * Padronizar os argumentos da classe de interface (app/pipeline/interface/base.py) para dar conta de todas as classes de serviço (em app/pipeline/sistemas.py)
 
 * **[DRY - _click(...) bot-core]**Retirar as implementações repetitivas do método _click() em todos os bot-cores (todos os módulos em app/core/) e levar essa implementação para uma única definição porém na classe base ou para um método utilitário - para diminuir repetição de código e adequar melhor ao SOLID.
 
 * **[DRY - _interact(...) bot-core]** Subir a definição dos métodos _interact(...), o _click(...) mais resiliente, definidos duas vezes (em sisctm.py e google.py) para a classe base - pois este é um método universal e agnóstico quanto ao site ou plataformas que estamos (e pode ser usado até em outras aplicações de autmação de navegação)
 
+## Implementados
 
 * **[Feito - AutoTRI 1.3]** APersistência dos Logs de triagem: Após gerar todo o log e salvar A ÚLTIMA TRIAGEM na raíz do projeto/executável copiar o arquivo de log PRA DENTRO DA PASTA DE RESULTADOS - para que os logs não se percam na próxima triagem e tudo relativo à quela triagem fique num lugar só.
 

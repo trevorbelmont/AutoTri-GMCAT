@@ -2,7 +2,8 @@ import os
 import shutil
 from datetime import datetime
 from pipeline import processar_indice, processar_protocolo
-from utils import logger, log_path, section_log, abrir_pasta, criar_pasta_resultados
+from utils import logger, log_path, section_log, reset_log_file
+from utils import abrir_pasta, criar_pasta_resultados
 from gui import iniciar_interface
 
 
@@ -10,6 +11,8 @@ def main():
 
     # função aninhada principal do orquestrador (definida dentro da main)
     def processar(credenciais, protocolos, ics_avulsos, cancelar_event, atualizar_progresso_gui, atualizar_status_gui ):
+
+        reset_log_file() # Limpa o arquivo de LOG (Detalhes da Última Triagem)
 
         # Cria pasta_resultados - neste método o momento 'agora' das Time Stamps são definidos
         # NOTE: a Time Stamp da pasta resultados será propagada para o início do Logger e demais coisas.
@@ -23,15 +26,14 @@ def main():
         timestamp_legivel = nome_pasta.replace("Resultados - ", "")
          # NOTE: as 3 linhas de código acima são executadas para garantir 100% de coerência e sincronia entre o arquivo LOG.txt e o nome da pasta 'Resultados - <...>'
 
-        # Escreve o cabeçalho do LOG unificiado (arquivo e GUI)
-        # TODO: Modificar os separadores hardcoded para usar a função section_log() definida em logger.py
-        logger.info(f"===== Triagem iniciada em {timestamp_legivel} ====")
+        
+        section_log(f" Triagem iniciada em {timestamp_legivel} ",'=',60)
         
         # --- Formata a lista  de PROTOCOLOS para ficar mais legível [sem colchetes nem áspas simples] -----
         # Quebra a lista em pedaços (chunks) de 3 itens
         chunks = [protocolos[i:i + 3] for i in range(0, len(protocolos), 3)]
         # Junta com quebra de linha, recuo (tabulação) e identação visual de 3 em 3 PROTOCOLOS (por linha)
-        lista_formatada = "\n ".join([f"\t{', '.join(chunk)}" for chunk in chunks])
+        lista_formatada = "\n ".join([f"\t\t{', '.join(chunk)}" for chunk in chunks])
         logger.info(f"PROTOCOLOS identificados p/ triagem    ({len(protocolos)}):\n{lista_formatada}")
 
         # Loga os ÍNDICES CADASTRAIS avulsos se houver
@@ -39,11 +41,11 @@ def main():
             # Reutiliza variáveis e lista usada em protocolos
             chunks = [ics_avulsos[i:i + 3] for i in range(0, len(ics_avulsos), 3)]
             # Junta com quebra de linha, recuo (tabulação) e identação visual de 3 em 3 ICs (por linha)
-            lista_formatada = "\n ".join([f"\t{', '.join(chunk)}" for chunk in chunks])
-            logger.info(f"ÍNDICES CADASTRAIS (avulsos) identificados para trigeem    ({len(ics_avulsos)}):\n{lista_formatada}")
+            lista_formatada = "\n ".join([f"\t\t{', '.join(chunk)}" for chunk in chunks])
+            logger.info(f"ICs (avulsos) identificados para trigem    ({len(ics_avulsos)}):\n{lista_formatada}")
         
-        logger.info("==========================================================\n\n")
-
+        # Coloca delimitador de fim de cabeçalho
+        section_log("",'=',60)
         count_protocol = 0
         count_IC = 0
         inicio_exec = datetime.now()

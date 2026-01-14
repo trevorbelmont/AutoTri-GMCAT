@@ -3,7 +3,7 @@ import re
 # TODO: se naõ tiver mascara, adicionar comportamento de só sanitizar (só remover não alphanume´ricos)
 def format_by_pattern(valor: str, mascara: str, placeholder: str = '#') -> str:
     """
-    Aplica uma máscara de formatação a uma string bruta.
+    Aplica uma máscara de formatação a uma string bruta TRUNCANDO A STRING 'valor' se ela for maior que a 'máscra'.
     
     A função primeiro remove todos os caracteres não-alfanuméricos do valor de entrada,
     e então preenche os slots definidos pelo 'placeholder' na máscara com esses caracteres.
@@ -54,7 +54,7 @@ def format_by_pattern(valor: str, mascara: str, placeholder: str = '#') -> str:
 # XXX: olhar com calma
 def format_by_pattern2(valor: str, mascara: str, placeholder: str = '#') -> str:
     """
-    Aplica uma máscara de formatação a uma string bruta.
+    Aplica uma máscara de formatação a uma string bruta - NÃO TRUNCA A STRING 'valor' SE ELA FOR MAIOR QUE A 'máscara'.
     
     A função sanitiza a entrada (mantendo apenas alfanuméricos) e preenche os slots 
     definidos pelo 'placeholder'. Caracteres literais da máscara são preservados.

@@ -36,15 +36,39 @@ class QueueHandler(logging.Handler):
         except Exception:
             self.handleError(record)
 
+# Limpa o arquivo de Detalhes da Última Triagem.xt
+def reset_log_file():
+    """
+    Força a limpeza do arquivo de log para iniciar uma nova triagem limpa.
+    Chamado no início de cada processamento para não levar detalhes de triagem anteriores para a triagem atual
+    """
+    # 'global' avisa o python que não é uma variável nova, mas uma referência à variável global pre existente
+    global file_handler 
+
+    # Fecha o handler atual para liberar o arquivo
+    file_handler.close()
+    logger.removeHandler(file_handler)
+    
+    # Reabre o arquivo em modo 'w' (write), o que trunca (limpa) o conteúdo
+    new_handler = logging.FileHandler(log_path, mode="w", encoding="utf-8")
+    new_handler.setFormatter(file_formatter)
+    
+    # Reconecta o handler ao logger
+    logger.addHandler(new_handler)
+    
+    # Atualiza a referência global da variável file_handler
+    file_handler = new_handler
+
+
 # Define uma função para gerar separadores de seção
-def section_log(titulo: str, separador: str = "-", largura: int = 50):
+def section_log(titulo: str, separador: str = "-", largura: int = 54):
     """
     Gera uma linha de log centralizada e destacada com Título.
     Ex: ----------- < SIATU : 31.00337504/2025-03 > -----------
 
     :param: titulo: (str) A mensagem a ser exibida no centro (entre os separadores)
     :param: separador: (str) o caractére usado como separador (por padrão é '-' mas pode ser ' ', espaço em branco tb) 
-    :largura: (int) a largura da linha da mensagem
+    :param: largura: (int) a largura da linha da mensagem em caracteres (padrão 54)
 
     """
     mensagem = f" {titulo} "

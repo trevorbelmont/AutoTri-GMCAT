@@ -37,7 +37,7 @@ class InterfaceApp:
     def __init__(self, processar_callback):
         self.processar_callback = processar_callback
         self.root = tk.Tk()
-        self.root.title("Automação de Triagem")
+        self.root.title("AutoTri 1.49B - Automação de Triagem")
         
         # Estado da Aplicação (variáveis e evento thread)
         self.credenciais = {}
@@ -70,8 +70,8 @@ class InterfaceApp:
         """Define todo o layout e widgets da janela."""
 
         # --- Configuração de Responsividade das Colunads da Interface ---
-        self.root.geometry("550x550") 
-        self.root.minsize(500, 400)   
+        self.root.geometry("600x600") 
+        self.root.minsize(500, 475)   
             
         self.root.grid_columnconfigure(0, weight=0)     # Coluna 0 (Labels):    Peso 0: Tamanho fixo, não cresce.
         self.root.grid_columnconfigure(1, weight=1)     # Coluna 1 (Inputs):    Peso 1 : Cresce e ocupa todo o espaço horizontal sobrando)
@@ -126,10 +126,10 @@ class InterfaceApp:
             e renderizamos o widget com o .grid(...), NORMALMENTE.
         '''
         tk.Label(self.root,
-                 text=  "Protocolo(s):\n(Separados por ESPAÇO ou VÍRGULAS)\n"
-                        "Ex. 7463527921,48302891,700675062505)",
-                 justify="left",        #Justifica label à esquerda
-                 ).grid(row=5, column=0, stick="nw", padx=5, pady=0)
+                text=  "Protocolo(s):\n(Separados por VÍRGULAS)\n"
+                        "Ex. 700649452520, 3100002390202324, 700693692507)",
+                justify="left",        #Justifica label à esquerda
+                ).grid(row=5, column=0, stick="nw", padx=5, pady=0)
         # wrap=tk.WORD : Define para que palavras (protocolos), separados por vírgula e espaço, 
         # não sejam visual partidos no meio na quebra de linha.
         self.entry_protocolos = tk.scrolledtext.ScrolledText(self.root, height=4,  width=30, wrap=tk.WORD)
@@ -137,8 +137,11 @@ class InterfaceApp:
 
         #--------------------------- ÍNDICES CADASTRAIS ---------------------------------------
 
-        tk.Label(self.root, text = "Índices Cadastrais:",
-                 ).grid(row=6, column=0, stick='nw', padx=5,pady = 15)
+        tk.Label(self.root,
+                text=  "Índices Cadastrais:\n(Separados por VÍRGULAS)\n"
+                        "Ex: 3120160070011, 9290310040014, 9290280290013",
+                justify= "left",
+                ).grid(row=6, column=0, stick='nw', padx=5,pady = 15)
         
         # Adiciona o conteúdo do ScrolledText de Índices Cadastrais como uma variável do objeto InterfaceApp
         self.entry_cadastrais = tk.scrolledtext.ScrolledText(self.root, height = 3, width=30, wrap=tk.WORD)

@@ -4,7 +4,9 @@
         **>> FUNDAMENTAL >> :** Índices cadastrais SEMPRE tem formatação padrão? [padrão 123456 123 1234 (Regional, Quadra, Lote).]???
         **>> UX, UI, ROBUSTEZ >>:** Saber se existe realmente um padrão sempre fixo, determina a robustez (e risco da implementação) e a interção dos usuários com o campo de Triagem via Cadastrias
 
-* **[PRIORITÁRIO]** **Checar frequência do status (print) "SEM PROJETO" do URBANO** O print vindo do Urbano tá mostrando sem projeto com frequência - é normal
+* **[PRIORITÁRIO]** **Checar frequência do status (print) "SEM PROJETO" do URBANO** O print vindo do Urbano tá mostrando sem projeto com frequência - é normal.
+
+* **[RELATÓRIO]** Diferenciar nos campos do relatório de triagem do IC, o que é ínformação indisponível de de informação nula (áreas iguais a zero é diferente de 'não conseguiu extrair a informação')
 
 * **[PRIORITÁRIO]** **SISTEMA DE UPDATE**: Implementar no próprio AutoTRI um meio de comunicação de novas atualizações de updates (notas de versão)
         * **Como isso se dá?** AutoUpdate (com download e substituição automáticos)? Direciona pro site? Atualização lateral (baixa a nova versão e substitui - mas move  mantém a(s) antiga(s) no computador do usuário - para casos de erros de código ou atualizações inconsistentes?)

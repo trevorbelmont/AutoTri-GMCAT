@@ -219,8 +219,8 @@ class InterfaceApp:
 
             # ============= TRATAMENTO DO CAMPO DE ÍNDICES (ScrolledText) =============
             texto_indices_bruto = self.entry_cadastrais.get("1.0", "end-1c")
-            # fazemos as duas sanitazações em cadeia (como com os protocolos) só que na mesma linha de código
-            texto_indices_normalizado = texto_indices_bruto.replace("\n", ",").replace(" ", ",") 
+            # fazemos as duas sanitazações em cadeia (como com os protocolos) s
+            texto_indices_normalizado = texto_indices_bruto.replace("\n", ",") 
             raw_indices = texto_indices_normalizado.split(',')  # criamos a lista, separando pelas vírgulas (dos índices normalizados)
 
             # Limpa (reseta) e cria a lista de índices (com List Comprehension)

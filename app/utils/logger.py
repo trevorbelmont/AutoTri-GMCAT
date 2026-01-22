@@ -61,14 +61,14 @@ def reset_log_file():
 
 
 # Define uma função para gerar separadores de seção
-def section_log(titulo: str, separador: str = "-", largura: int = 54):
+def section_log(titulo: str, separador: str = "-", largura: int = 50):
     """
     Gera uma linha de log centralizada e destacada com Título.
     Ex: ----------- < SIATU : 31.00337504/2025-03 > -----------
 
     :param: titulo: (str) A mensagem a ser exibida no centro (entre os separadores)
     :param: separador: (str) o caractére usado como separador (por padrão é '-' mas pode ser ' ', espaço em branco tb) 
-    :param: largura: (int) a largura da linha da mensagem em caracteres (padrão 54)
+    :largura: (int) a largura da linha da mensagem
 
     """
     mensagem = f" {titulo} "

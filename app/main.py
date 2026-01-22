@@ -10,7 +10,7 @@ from gui import iniciar_interface
 def main():
 
     # função aninhada principal do orquestrador (definida dentro da main)
-    def processar(credenciais, protocolos, ics_avulsos, cancelar_event, atualizar_progresso_gui, atualizar_status_gui ):
+    def processar(credenciais, protocolos, ics_avulsos, cancelar_event, atualizar_progresso_gui, atualizar_status_gui, iniciar_timer ):
 
         reset_log_file() # Limpa o arquivo de LOG (Detalhes da Última Triagem)
 
@@ -26,7 +26,9 @@ def main():
         timestamp_legivel = nome_pasta.replace("Resultados - ", "")
          # NOTE: as 3 linhas de código acima são executadas para garantir 100% de coerência e sincronia entre o arquivo LOG.txt e o nome da pasta 'Resultados - <...>'
 
-        
+        # Escreve o cabeçalho do LOG unificiado (arquivo e GUI)
+        # TODO: Modificar os separadores hardcoded para usar a função section_log() definida em logger.py
+        #logger.info(f"======= Triagem iniciada em {timestamp_legivel} =======")
         section_log(f" Triagem iniciada em {timestamp_legivel} ",'=',60)
         
         # --- Formata a lista  de PROTOCOLOS para ficar mais legível [sem colchetes nem áspas simples] -----
@@ -44,11 +46,26 @@ def main():
             lista_formatada = "\n ".join([f"\t\t{', '.join(chunk)}" for chunk in chunks])
             logger.info(f"ICs (avulsos) identificados para trigem    ({len(ics_avulsos)}):\n{lista_formatada}")
         
-        # Coloca delimitador de fim de cabeçalho
+        #logger.info("==========================================================\n\n")
         section_log("",'=',60)
         count_protocol = 0
         count_IC = 0
         inicio_exec = datetime.now()
+
+        # ==========================================================
+        # CÁLCULO SIMPLES DE TEMPO ESTIMADO
+        # ==========================================================
+        MEDIA_PROTOCOLO = 285 # 4 min 45 seg = 285 segundos
+        MEDIA_IC_AVULSO = 260 # 4 min 20 seg = 260 segundos
+        
+        qtd_prot = len(protocolos)
+        qtd_avulsos = len(ics_avulsos) if ics_avulsos else 0
+        margem_estimativa = 38
+        
+        tempo_total_estimado = (qtd_prot * MEDIA_PROTOCOLO) + (qtd_avulsos * MEDIA_IC_AVULSO) + margem_estimativa
+        
+        # Manda a interface começar a contar o relógio tb.
+        iniciar_timer(tempo_total_estimado)
 
         # Instancia a fila de trabalho que conterá protocolos reais e um protocolo virtual (para triagem de ICs)
         process_queue = []  # process_queue é uma lista de dicts (lista de dicionários de protocolo)
@@ -85,8 +102,14 @@ def main():
                 'ics_a_priori': ics_avulsos        # Já temos a lista de ICs! (conseguida do campo de triagem de ICs na interface
             })
 
-        total_tarefas = len(process_queue)
+        total_etapas: int = len(process_queue)                  # número de protocolos (REIS + VIRTUAL)
+        total_tarefas = len(protocolos) + len(ics_avulsos)      # Total real de tarefas de triagem
+        progressBarDict = {}                                    # Dicionário com info sobre a progress bar
+        progressBarDict["peso_tarefa"]= 100.0/(total_tarefas)    # Peso de cada etapa (protocolo virtual ou real) em porcentagem
+        progressBarDict["atual"] = 0.0                  # acumulador passado para atualizar_progresso_gui
+        progressBarDict["n_cadastrais_associados"] = 1  # um contador de ICs associados ao protocolo (útil para calcular increment em protocolos reais)
 
+        print(f"Total Tarefas = {total_tarefas}")
         try:
             # Usa enumarate para tornar 'protocolos' iterável. o '1' indica indexação partindo de 1 (não zero)
             # i: mero indexador (one-based); task: place holder p/ os dicts de protocolos em process_queue
@@ -99,12 +122,12 @@ def main():
 
 
                 if tipo == 'REAL':
-                    titulo_log = f"▶ INICIANDO ETAPA {i}/{total_tarefas}. PROTOCOLO: {id_atual}"
-                    titulo_status = f"▶ ETAPA {i}/{total_tarefas}:  PROTOCOLO:  {id_atual} ◀"
+                    titulo_log = f"▶ INICIANDO ETAPA {i}/{total_etapas}. PROTOCOLO: {id_atual}"
+                    titulo_status = f"▶ ETAPA {i}/{total_etapas}:  PROTOCOLO:  {id_atual} ◀"
                     msg_status = f"{titulo_status}\nSIGEDE" # Avisa que vai rodar Sigede pro protocolo
                 else:
-                    titulo_log = f"▶ INICIANDO ETAPA {i}/{total_tarefas}.  {len(task['ics_a_priori'])} ICs"
-                    titulo_status = f"▶  ETAPA  {i}/{total_tarefas}:  IC:  {id_atual}  ◀"
+                    titulo_log = f"▶ INICIANDO ETAPA {i}/{total_etapas}.  {len(task['ics_a_priori'])} ICs"
+                    titulo_status = f"▶  ETAPA  {i}/{total_etapas}:  IC:  {id_atual}  ◀"
                     msg_status = f"{titulo_status}\nIniciando..." # Não roda Sigede
 
 
@@ -132,8 +155,7 @@ def main():
                                         # TODO: O LOG e count protocol não reflete o nº de prot bem sucedidos
                                         # Uma terceria variável de controle e contagem após o sucesso do SIGEDE
                 
-                '''# Tupla de informação sobre o estado do processamento de protocolos
-                protCountTuple = (i, len(protocolos) )  # O progresso do processamento (Atual, Total)'''
+                
                 indices_para_processar = []
 
                 try:
@@ -141,10 +163,13 @@ def main():
                         # Normaliza e processa (chama SIGEDE p/ obter índices e criar pastas)
                         proto_normalizado = id_atual.replace("-", "").replace("/", "").replace(".", "")
                         indices_para_processar = processar_protocolo(proto_normalizado, credenciais, pasta_resultados)
-                    
+                        progressBarDict["atual"] += progressBarDict["peso_tarefa"]*0.1  #Calcula o progresso da barra após o SIGEDE
+                        atualizar_progresso_gui(progressBarDict["atual"])
+                        progressBarDict["n_cadastrais_associados"] = len(indices_para_processar)     #Define qtos ICs o protocolo tem
+
                     else:               # Se é um protocolo VIRTUAL (triagem por índices)
-                        indices_para_processar = task['ics_a_priori']     # Associa índices ao protocolo virtual
-                        
+                        indices_para_processar = task['ics_a_priori']       # Associa índices ao protocolo virtual
+                        progressBarDict["n_cadastrais_associados"] = 1       # Volta pro padrão 1 (pois ICs avulsos comtam como uma tarefa)
                         # Cria a pasta manualmente, já que a etapa de obtenção de índices (SIGEDE) não vai rodar e criar
                         # O nome da pasta para para triagem por IC, referenciado por 'id_atual' é definido acima na str ID_ICs
                         caminho_pasta_virtual = os.path.join(pasta_resultados, id_atual)
@@ -177,16 +202,23 @@ def main():
                                 credenciais,
                                 id_atual,
                                 pasta_resultados,
-                                status_title=status_dinamico,            # Passa  status_dinamico no 'status_title' para maior granularidade
-                                statusUpdater=atualizar_status_gui,       # Método para atualizar o status da gui (um método da classe InterfaceApp)
-                                VIRTUAL_PRTCL=VIRTUAL_PRTCL,              # O IC atual está num protocolo Virtual?         
+                                status_title=status_dinamico,                   # Passa  status_dinamico no 'status_title' para maior granularidade
+                                statusUpdater=atualizar_status_gui,             # Método para atualizar o status da gui (um método da classe InterfaceApp)
+                                progressBarUpdater = atualizar_progresso_gui,   # Método para atualizar a barra de progresso (um método da classe InterfaceApp)
+                                progressBarDict= progressBarDict,               # Dicionário contendo info sobre a progressBar
+                                VIRTUAL_PRTCL=VIRTUAL_PRTCL,                    # O IC atual está num protocolo Virtual?         
                             )
                             j += 1      # incrementa o contador de ICs (Index de índices ^^)
                             
                         except Exception as e:
                             logger.error(f"Erro no índice {indice}: {e}")
 
-                atualizar_progresso_gui(i)
+                        print(f"DEBUG                                         >>>> progress bar  END:       >>>> {progressBarDict['atual']}")
+                        print(f"DEBUG                                         >>>> progress bar peso:       >>>> {progressBarDict["peso_tarefa"]}")
+                # Se não achou índices pra processar no Sigede
+                elif not indices_para_processar:
+                    progressBarDict["atual"] += progressBarDict["peso_tarefa"]*0.9  #Adiciona o resto da porcentagem daquela etapa
+
 
             if not cancelar_event.is_set():
                 if os.path.exists(pasta_resultados):
@@ -203,9 +235,13 @@ def main():
         finally:
             duracao = datetime.now() - inicio_exec
             minutos, segundos = divmod(duracao.total_seconds(), 60)
-            logger.info(f"Protocolos processados: {count_protocol}")
+            final_log_total_protocol = count_protocol if not ics_avulsos else count_protocol-1
+            logger.info(f"Protocolos processados: {final_log_total_protocol}")
             logger.info(f"ICs processados: {count_IC}")
             logger.info(f"Tempo: {int(minutos)} min {int(segundos)} seg")
+            if progressBarDict["atual"] != 100.0:
+                progressBarDict["atual"] = 100.0
+                atualizar_progresso_gui(progressBarDict['atual'])
             # --- Persistência do Arquivo de LOG (enviado pra pasta de Resultados) ---
             if os.path.exists(pasta_resultados) and log_path.exists():
                 # OS LOGS NESTE BLOCO TRY ABAIXO NÃO VÃO PARA O ARQUIVO COPIADO -  pois são apenas sobre sucesso do copiar>colar>renomear
@@ -225,7 +261,7 @@ def main():
             root.after(0, resetar_interface) # A main está resetando a interface (não interface.py)
             # Reseta a interface DEPOIS de mover o log pra past de Resultados
 
-    root, resetar_interface, _ = iniciar_interface(processar)
+    root, resetar_interface, _, iniciar_timer = iniciar_interface(processar)
     root.mainloop()
 
 

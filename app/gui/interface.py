@@ -6,8 +6,8 @@ import sys
 from utils import logger, log_queue
 from utils import format_by_pattern, format_by_pattern2
 
-
-
+import time
+from datetime import timedelta
 
 
 def resource_path(relative_path: str) -> str:
@@ -172,11 +172,15 @@ class InterfaceApp:
         self.status_label.grid(row=9, column=0, sticky="ew", columnspan=2, padx=5, pady=0)
 
         self.progress_bar = ttk.Progressbar(self.root, orient="horizontal", length=500, mode="determinate")
-        self.progress_bar.grid(row=10, column=0, sticky="ew", columnspan=2, pady=5, padx=1)
+        self.progress_bar.grid(row=10, column=0, sticky="ew", columnspan=2, pady=5, padx=1)   
 
         # --- Log Area ---
         self.log_area = scrolledtext.ScrolledText(self.root, width=30, height=10, state="disabled")
-        self.log_area.grid(row=11, column=0, columnspan=2, pady=10, padx=2, sticky="nsew")
+        self.log_area.grid(row=11, column=0, columnspan=2, pady=5, padx=2, sticky="nsew")
+        
+        # ---- Timers ---- 
+        self.timers_label = tk.Label(self.root, text= "--:-- / --:--", justify="center")
+        self.timers_label.grid(row=12, column=0, sticky="ew",columnspan=2,pady=0,padx=0)
 
 #====================================  FIM DA DEFINIÇÃO DE LAYOUT =================================================================
 
@@ -249,7 +253,7 @@ class InterfaceApp:
             # Prepara UI para execução e DETERMINA O MAXIMUM (TOTAL) DA BARRA DE PROGRESSO
             self._alternar_estado_ui(processando=True)
             self.cancelar_event.clear()
-            self.progress_bar["maximum"] = len(self.protocolos)
+            self.progress_bar["maximum"] = 100 
             self.progress_bar["value"] = 0
 
             # Inicia Thread
@@ -298,7 +302,8 @@ class InterfaceApp:
                 self.indices_avulsos,
                 self.cancelar_event,
                 self.atualizar_progresso,
-                self.atualizar_status 
+                self.atualizar_status,
+                self.iniciar_cronometro_simples, 
             )
         except Exception as e:
             # Se der erro CRÍTICO na thread (antes do main tratar), faz o log do Erro e.....
@@ -314,15 +319,41 @@ class InterfaceApp:
         self.root.update_idletasks() # Força atualização visual imediata
 
     # Método auxiliar para atualizar para atualização da barra de progresso.
-    def atualizar_progresso(self, valor):
+    def atualizar_progresso(self, valor: float):
         """Callback passado para o processamento atualizar a barra de progresso.
         TODO: atualmente atualiza apenas processamendo de protocolos: 
         colocar granularidade de fases (do processamento de ICs) na barra de progresso)?"""
         self.progress_bar["value"] = valor
         self.root.update_idletasks()
 
+    def iniciar_cronometro_simples(self, estimativa_segundos: int):
+        """Inicia contagem baseada numa estimativa fixa recebida da main."""
+        self.inicio = time.time()
+        self.estimativa = estimativa_segundos
+        self.rodando = True
+        self._atualizar_relogio()
+
+    def _atualizar_relogio(self):
+        if not self.rodando: return
+        
+        agora = time.time()
+        decorrido = int(agora - self.inicio)
+        
+        # Formata no padrão humano (00:00:00)
+        str_decorrido = str(timedelta(seconds=decorrido))
+        str_estimado = str(timedelta(seconds=int(self.estimativa)))
+        
+        self.timers_label.config(text=f"Tempo: {str_decorrido}  /  Estimado: ~{str_estimado}")
+        
+        # Chama de novo em 1 segundo
+        self.root.after(1000, self._atualizar_relogio)
+
+    def parar_cronometro(self):
+        self.rodando = False    
+
     def resetar_interface(self):
         """Restaura o estado inicial da UI após o fim do processo."""
+        self.parar_cronometro() 
         self.status_label.config(text="Processamento finalizado.")
         self._alternar_estado_ui(processando=False)
         messagebox.showinfo("Concluído", "O processamento foi finalizado.")
@@ -383,4 +414,4 @@ def iniciar_interface(processar_callback):
     app = InterfaceApp(processar_callback)
     
     # O main.py espera receber: root, função_reset, evento_cancelar
-    return app.root, app.resetar_interface, app.cancelar_event
+    return app.root, app.resetar_interface, app.cancelar_event, app.iniciar_cronometro_simples

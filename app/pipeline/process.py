@@ -39,8 +39,9 @@ def processar_protocolo(protocolo: str, credenciais: Dict[str, str], pasta_resul
 
 
 def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, pasta_resultados: str,           # Param. obrigatórios pra triagem de índices
-                     status_title: Optional[str] = "", statusUpdater: Optional[Callable[[str],None]] = None,    # Param. opcionais - pra interface
-                     VIRTUAL_PRTCL: bool = False) -> None:                                                      # param. opcional - triagem de ic
+                     status_title: Optional[str] = "", statusUpdater: Optional[Callable[[str],None]] = None,    # Param. opcionais - pra texto  da interface
+                     progressBarUpdater: Optional [Callable[[float], None]] = None, progressBarDict: Dict[str, float] = None, # param. opcionais - progressBar
+                     VIRTUAL_PRTCL: bool = False) -> None:                                                      # param. opcionais - triagem de ic
     """
     Execução dos módulos SIATU, URBANO e SISCTM para UM ÚNICO índice especificado, Gera relatório e Cria a pasta do IC.
     
@@ -51,8 +52,18 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
 
     :param status_title: String de monitoramento de processamento de protocolos. Ex: " PROTOCOLO 1/1: 700701792560" - OPCIONAL
     :param statusUpdater: função de atualização do StatusText da interface - OPICIONAL
+    :param progressBarUpdater: função de atualização da Progres Bar da interface - OPICIONAL
+    :param progressBarDict: um dicionário [str, int] contendo info sobre o estado da progressbar.
     :return: None
     """
+
+    # porção_de_progresso é o múltiplicador associados ao número de ICs naquele protocolo
+    porcao_de_progresso =  1.0 
+    if (progressBarDict["n_cadastrais_associados"] > 0):
+        porcao_de_progresso = 1.0 / progressBarDict["n_cadastrais_associados"] 
+    else:
+        porcao_de_progresso = 0         # pelo if da main (if indices_processar), não entra aqui se for zero
+    
 
     # Definição do caminho e criação da pasta 
     pasta_indice = os.path.join(pasta_resultados, protocolo, indice)
@@ -76,7 +87,13 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     dados_pb: Dict[str, Any]
     anexos_count: int
     (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
-
+    
+    # Calcula e atualiza a progress bar para após o Siatu
+    if progressBarUpdater and progressBarDict:  # Calcula
+        increment = (progressBarDict["peso_tarefa"]*0.2)*porcao_de_progresso
+        progressBarDict["atual"] += increment
+        progressBarUpdater(progressBarDict["atual"])
+            
 
     # ------ STATUS, LOG e EXECUÇÃO :: URBANO ------
     if statusUpdater:
@@ -90,6 +107,12 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     projetos_count: int
     (dados_projeto, projetos_count) = Urbano().executar(indice, credenciais, pasta_indice)
 
+    # Calcula e atualiza a progress bar para após o Urbano
+    if progressBarUpdater and progressBarDict:  # Calcula
+        increment = (progressBarDict["peso_tarefa"]*0.2)*porcao_de_progresso
+        progressBarDict["atual"] += increment
+        progressBarUpdater(progressBarDict["atual"])
+
 
     # ------ STATUS, LOG e EXECUÇÃO :: SISTM ------
     if statusUpdater:
@@ -102,6 +125,13 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     print (pasta_indice)
     dados_sisctm: Dict[str, Any] = Sisctm().executar(indice, credenciais, pasta_indice)
 
+    # Calcula e atualiza a progress bar para após o Sisctm
+    if progressBarUpdater and progressBarDict:  # Calcula
+            taxa = 0.4 if VIRTUAL_PRTCL else 0.3        # os custo da etapa SICTM é um pouco maior em protocolso virtuais
+            increment =  (progressBarDict["peso_tarefa"]*taxa)*porcao_de_progresso
+            progressBarDict["atual"] += increment
+            progressBarUpdater(progressBarDict["atual"])
+
     # ------ STATUS, LOG e EXECUÇÃO :: GOOGLE MAPS ------
     if statusUpdater:
         status =  f"{status_title}  -  G-MAPS  :  ({indice})"
@@ -109,11 +139,18 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     section_log(f"< GOOGLE MAPS  -  IC: {indice} >")   # Adiciona seção SIATU pra cada índice nos LOGS
     GoogleMaps().executar(indice, dados_sisctm, dados_pb, pasta_indice)
 
-    # ------ GERANDO RELATÓRIO ------
+     # Calcula e atualiza a progress bar para após o Google Maps
+    if progressBarUpdater and progressBarDict:  # Calcula
+        increment = (progressBarDict["peso_tarefa"]*0.2)*porcao_de_progresso
+        progressBarDict["atual"] += increment
+        progressBarUpdater(progressBarDict["atual"])
+
+    # ------ GERANDO RELATÓRIO ------ :
     if statusUpdater:
         status =  f"{status_title}  -  GERANDO RELATÓRIO  :  ({indice})"
         statusUpdater(status)                         
-    section_log(f"<  RELATÓRIO do IC: {indice} >")   # Adiciona seção SIATU pra cada índice nos LOGS
+    section_log(f"<  RELATÓRIO do IC: {indice} >")   # Adiciona seção RELATÓRIO pra cada índice nos LOGS
+    # Não calcula progresso na progress bar apra gerar relatório pq é geralmente feito em menos de um segundo
 
     # O caminho para o relatório de Triagem (PDF)
     pdf_path = os.path.join(pasta_indice, f"1. Relatório de Triagem - {indice}.pdf")

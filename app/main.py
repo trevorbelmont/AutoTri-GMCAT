@@ -109,7 +109,7 @@ def main():
         progressBarDict["atual"] = 0.0                  # acumulador passado para atualizar_progresso_gui
         progressBarDict["n_cadastrais_associados"] = 1  # um contador de ICs associados ao protocolo (útil para calcular increment em protocolos reais)
 
-        print(f"Total Tarefas = {total_tarefas}")
+        
         try:
             # Usa enumarate para tornar 'protocolos' iterável. o '1' indica indexação partindo de 1 (não zero)
             # i: mero indexador (one-based); task: place holder p/ os dicts de protocolos em process_queue
@@ -212,9 +212,7 @@ def main():
                             
                         except Exception as e:
                             logger.error(f"Erro no índice {indice}: {e}")
-
-                        print(f"DEBUG                                         >>>> progress bar  END:       >>>> {progressBarDict['atual']}")
-                        print(f"DEBUG                                         >>>> progress bar peso:       >>>> {progressBarDict["peso_tarefa"]}")
+                        
                 # Se não achou índices pra processar no Sigede
                 elif not indices_para_processar:
                     progressBarDict["atual"] += progressBarDict["peso_tarefa"]*0.9  #Adiciona o resto da porcentagem daquela etapa

@@ -2,6 +2,7 @@ import time
 import os
 
 from utils import logger
+from .base import BotBase
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -9,7 +10,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
 
-class UrbanoAuto:
+class UrbanoAuto(BotBase):
     """
     Classe para automatizar tarefas relacionadas ao sistema Urbano via Selenium.
 
@@ -22,19 +23,14 @@ class UrbanoAuto:
     """
 
     def __init__(self, driver, url, usuario, senha, pasta_download):
-        self.driver = driver
+
+        super().__init__(driver, timeout = 5)
+
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
-        self.wait = WebDriverWait(self.driver, timeout=5)
-
-    def _click(self, element):
-        """Tenta clicar diretamente, se falhar usa JavaScript."""
-        try:
-            element.click()
-        except Exception:
-            self.driver.execute_script("arguments[0].click();", element)
+    
 
     def acessar(self):
         """Abre o sistema Urbano."""

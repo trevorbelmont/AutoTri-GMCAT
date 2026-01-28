@@ -18,9 +18,10 @@ from selenium.webdriver.support import expected_conditions as EC
 
 
 from utils import logger
+from .base import BotBase
 
 
-class SisctmAuto:
+class SisctmAuto(BotBase):
     """
     Classe para automatizar tarefas relacionadas ao SISCTM via Selenium.
 
@@ -37,116 +38,15 @@ class SisctmAuto:
         timeout: int = 10,          # timeout é definido com valor padrão (se não definido na instanciação do objeto)
         checar_popup: bool = True,  # checar_popup também possui valor padrão (se não definido na instanciação)
     ):
-        self.driver = driver
+        
+        super().__init__(driver, timeout)
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
-        # WebDriverWait é instanciado aqui e usado como self.wait
-        self.wait = WebDriverWait(self.driver, timeout=timeout)
         self.checar_popup = checar_popup 
-
-
-    def _click(self, element) -> None:
-        """Tenta clicar diretamente, se falhar usa JavaScript."""
-        try:
-            element.click()
-        except Exception:
-            self.driver.execute_script("arguments[0].click();", element)
-
-
-    # Define um método universal para localizar elementos e interagir com eles (clicar ou não),
-    # utilizando múltiplas estratégias de busca com lógica de fallback.
-    #   - Usa **kwargs para definir estratégias de localização (id, xpath, css, etc.).
-    #   - A ordem dos kwargs define a prioridade ENTRE estratégias.
-    #   - Cada estratégia pode receber uma string única ou uma lista de strings,
-    #   onde a ordem interna define o fallback DENTRO da mesma estratégia.
-    #
-    # TODO: Mover este método para cima na hierarquia de classes
-    #       (assim como _click(...), este método é universal para todos os bot-cores).
-    def _interact(
-        self,
-        nome_log: str,
-        timeout_tentativa: float = 2.0,
-        clicar: bool = True,
-        **seletores: Union[str, Iterable[str]]
-    ) -> Optional[WebElement]:
-        """ Um click ou element finder mais robusto com lógica de fallback em dois níveis e tentativas em várias etapas implementada.
-        Localiza um elemento usando estratégias de fallback prioritários, baseados na ordem que os argumentos passados.
-        Além da procura do elemento na ordem das estratégias passadas por argumentos, há também prioridade de busca dentro do mesmo tipo de estratégia.
-        Retorna o WebElement encontrado para uso posterior, caso necessário.
-        
-        :param nome_log: Nome para registro no log.
-        :param timeout_tentativa: [OPCIONAL - default: 2.0 segs] Tempo máximo de espera pra cada seletor achar o elmento - em segs.
-        :param clicar: [[OPCIONAL - default: True] Se True, executa o _click() automaticamente ao encontrar.
-        :param **seletores: Pares de estratégia=valor ou estratégia=[valores].
-                    A ordem dos argumentos define a prioridade entre estratégias,
-                    e a ordem interna, quando usando listas, define o fallback dentro da mesma estratégia.
-        :return: O WebElement encontrado ou None, se falhar em todos os seletores.
-        
-        Exemplo de uso:
-            self._interact(
-                nome_log="Botão Exemplo",
-                id="meu_id",
-                xpath=[
-                    "//div[@class='primary']",
-                    "//div[@class='secondary']"
-                ],
-                css=".botao-fallback"
-            )
-        """
-        # Define os tipo de métodos de procura válidos (tags do código fonte)
-        # Útil para evitar que tags não previstas no selenium sejam testadas
-        
-        mapa_by = {
-            'id': By.ID,
-            'name': By.NAME,
-            'xpath': By.XPATH,
-            'css': By.CSS_SELECTOR,
-            'class_name': By.CLASS_NAME,
-            'tag': By.TAG_NAME
-        }
-
-        tempo_gasto = 0.0
-
-        for estrategia, valores in seletores.items():
-            if estrategia not in mapa_by:
-                continue
-
-            by_type = mapa_by[estrategia]
-
-            # Normaliza para lista (mantém compatibilidade)
-            if isinstance(valores, str):
-                valores = [valores]
-
-            for valor_seletor in valores:
-                try:
-                    elemento = WebDriverWait(self.driver, timeout_tentativa).until(
-                        EC.element_to_be_clickable((by_type, valor_seletor))
-                    )
-
-                    tempo_gasto += timeout_tentativa
-                    logger.info(
-                        f"{nome_log} encontrado via '{estrategia}' "
-                        f"em {tempo_gasto:.1f}s."
-                    )
-
-                    if clicar:
-                        self._click(elemento)
-
-                    return elemento
-
-                except Exception:
-                    tempo_gasto += timeout_tentativa
-                    continue
-
-        logger.error(
-            f"ERRO: {nome_log} não encontrado após todas as tentativas. "
-            f"Tempo total: {tempo_gasto:.1f}s."
-        )
-        return None
     
-
+    
     def login(self) -> bool:
         """Realiza login no Keycloak PBH em páginas Vue.js."""
         

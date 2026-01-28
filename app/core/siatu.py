@@ -3,6 +3,7 @@ import time
 import re
 
 from utils import logger
+from .base import BotBase
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,7 +12,7 @@ from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.remote.remote_connection import RemoteConnection
 
 
-class SiatuAuto:
+class SiatuAuto(BotBase):
     """
     Classe para automatizar tarefas relacionadas ao SIATU via Selenium.
 
@@ -24,20 +25,12 @@ class SiatuAuto:
     """
 
     def __init__(self, driver, url, usuario, senha, pasta_download):
-        self.driver = driver
+       
+        super().__init__(driver,timeout = 5)
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
-        self.wait = WebDriverWait(self.driver, timeout=5)
-
-    def _click(self, element):
-        """
-        Tenta clicar em um elemento, usando JavaScript como fallback."""
-        try:
-            element.click()
-        except Exception:
-            self.driver.execute_script("arguments[0].click();", element)
 
     def acessar(self):
         """
@@ -394,51 +387,6 @@ class SiatuAuto:
 
         return dados
 
-    def _esperar_download_concluir(self, caminho_arquivo, timeout=120):
-        """
-        Espera até que o arquivo seja completamente baixado na pasta de destino.
-        Funciona mesmo que o navegador use nomes temporários diferentes.
-        """
-        pasta = os.path.dirname(caminho_arquivo)
-        nome_base = self._sanitize_filename(os.path.basename(caminho_arquivo))
-        temporarios = (".crdownload", ".part", ".tmp")
-        inicio = time.time()
-
-        # Mapeia arquivos existentes e seus tamanhos
-        try:
-            arquivos_anteriores = {
-                f: os.path.getsize(os.path.join(pasta, f)) for f in os.listdir(pasta)
-            }
-        except FileNotFoundError:
-            arquivos_anteriores = {}
-
-        while True:
-            try:
-                arquivos_atuais = {
-                    f: os.path.getsize(os.path.join(pasta, f))
-                    for f in os.listdir(pasta)
-                }
-            except FileNotFoundError:
-                arquivos_atuais = {}
-
-            for f, tamanho in arquivos_atuais.items():
-                if f.endswith(temporarios):
-                    continue
-                sanitized = self._sanitize_filename(f)
-                # Detecta se é novo ou mudou de tamanho
-                if (
-                    sanitized == nome_base
-                    or (f not in arquivos_anteriores)
-                    or (arquivos_anteriores.get(f) != tamanho)
-                ):
-                    return True
-
-            if time.time() - inicio > timeout:
-                logger.warning("Timeout aguardando download: %s", caminho_arquivo)
-                return False
-
-            time.sleep(0.2)
-
     def _print_alteracoes(self):
         try:
             # Clica na aba do menu "Alterações"
@@ -466,6 +414,3 @@ class SiatuAuto:
         except Exception as e:
             logger.error(f"Erro ao acessar a aba Alterações: {e}")
 
-    def _sanitize_filename(self, nome):
-        """Remove caracteres inválidos em nomes de arquivos no Windows."""
-        return re.sub(r'[<>:"/\\|?*]', "_", nome)

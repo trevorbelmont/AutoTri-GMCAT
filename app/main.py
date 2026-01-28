@@ -55,12 +55,12 @@ def main():
         # ==========================================================
         # CÁLCULO SIMPLES DE TEMPO ESTIMADO
         # ==========================================================
-        MEDIA_PROTOCOLO = 285 # 4 min 45 seg = 285 segundos
+        MEDIA_PROTOCOLO = 295 # 4 min 45 seg = 285 segundos
         MEDIA_IC_AVULSO = 260 # 4 min 20 seg = 260 segundos
         
         qtd_prot = len(protocolos)
         qtd_avulsos = len(ics_avulsos) if ics_avulsos else 0
-        margem_estimativa = 38
+        margem_estimativa = 68
         
         tempo_total_estimado = (qtd_prot * MEDIA_PROTOCOLO) + (qtd_avulsos * MEDIA_IC_AVULSO) + margem_estimativa
         

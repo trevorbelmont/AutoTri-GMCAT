@@ -103,7 +103,7 @@ class BotBase:
         return None
     
 
-    def _esperar_download_concluir(self, caminho_arquivo, timeout=120):
+    def _esperar_download_concluir(self, caminho_arquivo, arquivos_anteriores, timeout=120):
         """
         Espera até que o arquivo seja completamente baixado na pasta de destino.
         Funciona mesmo que o navegador use nomes temporários diferentes.
@@ -114,14 +114,8 @@ class BotBase:
         inicio = time.time()
 
         # Mapeia arquivos existentes e seus tamanhos
-        try:
-            arquivos_anteriores = {
-                f: os.path.getsize(os.path.join(pasta, f)) for f in os.listdir(pasta)
-            }
-        except FileNotFoundError:
-            arquivos_anteriores = {}
-
         while True:
+
             try:
                 arquivos_atuais = {
                     f: os.path.getsize(os.path.join(pasta, f))

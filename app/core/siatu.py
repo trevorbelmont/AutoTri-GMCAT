@@ -118,7 +118,7 @@ class SiatuAuto(BotBase):
                 EC.presence_of_element_located((By.ID, "exercicio"))
             )
 
-            # XXX: Diminui timeout devido ao travamento do SIATU em algumas ocasiões
+            # XXX: Tentar diminuir timeout devido ao travamento do SIATU em algumas ocasiões
             RemoteConnection.set_timeout(10)
 
             self._click(campo_exercicio)
@@ -201,7 +201,7 @@ class SiatuAuto(BotBase):
         Faz o download dos arquivos da seção anexos (apenas PDFs) do Siatu.
         """
 
-        # REVIEW: Normaliza timeout
+        # Normaliza timeout
         RemoteConnection.set_timeout(120)
 
         try:
@@ -255,11 +255,22 @@ class SiatuAuto(BotBase):
                 arquivo_caminho = os.path.join(self.pasta_download, nome_arquivo)
 
                 logger.info("Processando PDF %d/%d", i, len(anexos_pdf))
+
+
+                arquivos_anteriores = {}
+                pasta = os.path.dirname(arquivo_caminho)
+                try:
+                    arquivos_anteriores = {
+                    f: os.path.getsize(os.path.join(pasta, f)) for f in os.listdir(pasta)
+                }
+                except FileNotFoundError:
+                    arquivos_anteriores = {}
+
                 self._click(anexo)
                 logger.info("Clique realizado no PDF")
 
                 # Espera o download concluir
-                if self._esperar_download_concluir(arquivo_caminho, timeout=120):
+                if self._esperar_download_concluir(arquivo_caminho, arquivos_anteriores, timeout=120):
                     logger.info("Download concluído")
                 else:
                     logger.warning(

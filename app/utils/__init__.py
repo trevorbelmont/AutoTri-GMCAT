@@ -8,6 +8,7 @@ from .relatorio import (
     parse_area,
     formatar_area,
 )
+from . import settings
 from .decorators import retry
 
 # O que é importado (variáveis, classes e métodos)
@@ -18,6 +19,7 @@ __all__ = [
     "log_path",
     "section_log",
     "reset_log_file",
+    "settings",
     "format_by_pattern",
     "format_by_pattern2",
     "abrir_pasta",

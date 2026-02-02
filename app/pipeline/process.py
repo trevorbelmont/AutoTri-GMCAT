@@ -1,4 +1,5 @@
 from utils import logger, section_log # importa o objetor logger e a funçõa section_log (de utils/logger.py)
+from utils import settings
 from core import gerar_relatorio
 from .sistemas import Siatu
 from .sistemas import Urbano
@@ -35,6 +36,9 @@ def processar_protocolo(protocolo: str, credenciais: Dict[str, str], pasta_resul
 
     section_log(f"< SIGEDE  - Protocolo: {protocolo} >") # Adiciona, nos LOGs, o separador de seção do SIGEDE
     indices: List[str] = Sigede().executar(protocolo, credenciais, pasta_protocolo)
+
+    logger.debug(f"DEBUG Sigede:  {indices}")
+
     return indices      # Retorna Lista de Índices Cadastrais (IC) a serem processados
 
 
@@ -87,6 +91,8 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     dados_pb: Dict[str, Any]
     anexos_count: int
     (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
+
+    logger.debug(f"DEBUG Siatu: {dados_pb, anexos_count}")
     
     # Calcula e atualiza a progress bar para após o Siatu
     if progressBarUpdater and progressBarDict:  # Calcula
@@ -107,6 +113,8 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     projetos_count: int
     (dados_projeto, projetos_count) = Urbano().executar(indice, credenciais, pasta_indice)
 
+    logger.debug(f"DEBUG Urbano: {dados_projeto, projetos_count}")
+
     # Calcula e atualiza a progress bar para após o Urbano
     if progressBarUpdater and progressBarDict:  # Calcula
         increment = (progressBarDict["peso_tarefa"]*0.2)*porcao_de_progresso
@@ -119,11 +127,14 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
         status =  f"{status_title}  -  SISCTM  :  ({indice})"
         statusUpdater(status)                         
     section_log(f"< SISCTM  -  IC: {indice} >")   # Adiciona seção SIATU pra cada índice nos LOGS
-    print("DEBUG SISCTM:")
-    print (indice)
-    print (credenciais)
-    print (pasta_indice)
-    dados_sisctm: Dict[str, Any] = Sisctm().executar(indice, credenciais, pasta_indice)
+
+    logger.debug("DEBUG - pré execução do Sisctm.executar()")
+    logger.debug (indice)
+    logger.debug (pasta_indice)
+        
+    dados_sisctm: Dict[str, Any] = {}
+    dados_sisctm = Sisctm().executar(indice, credenciais, pasta_indice)
+    logger.debug(f"DEBUG Sisctm: \n{dados_sisctm}")
 
     # Calcula e atualiza a progress bar para após o Sisctm
     if progressBarUpdater and progressBarDict:  # Calcula

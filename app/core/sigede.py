@@ -2,7 +2,7 @@ import time
 import os
 import re
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase           # Classe pai da Herança
 
 from selenium.webdriver.common.by import By
@@ -25,7 +25,7 @@ class SigedeAuto(BotBase):
 
     def __init__(self, driver, url, usuario, senha, pasta_download):
 
-        super().__init__(driver,timeout=5)
+        super().__init__(driver, settings.TIMEOUT_ESPERA//2 )
 
         self.url = url
         self.usuario = usuario
@@ -145,7 +145,7 @@ class SigedeAuto(BotBase):
 
             if not rows:
                 logger.info("Nenhum processo encontrado. Encerrando fluxo.")
-                return False
+                return []
 
             # Itera pelas linhas para encontrar valor desejada na coluna Situação
             for row in rows:
@@ -174,11 +174,11 @@ class SigedeAuto(BotBase):
                     return indices
 
             logger.info("Nenhum registro com Situação 'Executando' encontrado.")
-            return False
+            return []
 
         except Exception as e:
             logger.error("Erro ao verificar a tabela: %s", e)
-            return False
+            return []
 
     def _download_inteiro_teor(self):
         """
@@ -199,11 +199,22 @@ class SigedeAuto(BotBase):
             nome_arquivo = os.path.basename(href) + ".pdf"
             caminho_arquivo = os.path.join(self.pasta_download, nome_arquivo)
 
+
+            arquivos_anteriores = {}
+            pasta = os.path.dirname(caminho_arquivo)
+            try:
+                arquivos_anteriores = {
+                f: os.path.getsize(os.path.join(pasta, f)) for f in os.listdir(pasta)
+            }
+            except FileNotFoundError:
+                arquivos_anteriores = {}
+
+
             # Clica no link para iniciar o download
             self._click(link)
 
             # Aguarda o download ser concluído
-            if self._esperar_download_concluir(caminho_arquivo):
+            if self._esperar_download_concluir(caminho_arquivo,arquivos_anteriores):
                 logger.info("Download concluído")
                 return caminho_arquivo
             else:

@@ -2,7 +2,7 @@ import os
 import time
 import re
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase
 
 from selenium.webdriver.common.by import By
@@ -26,7 +26,7 @@ class SiatuAuto(BotBase):
 
     def __init__(self, driver, url, usuario, senha, pasta_download):
        
-        super().__init__(driver,timeout = 5)
+        super().__init__(driver, settings.TIMEOUT_ESPERA//2)
         self.url = url
         self.usuario = usuario
         self.senha = senha
@@ -119,7 +119,7 @@ class SiatuAuto(BotBase):
             )
 
             # XXX: Tentar diminuir timeout devido ao travamento do SIATU em algumas ocasiões
-            RemoteConnection.set_timeout(10)
+            RemoteConnection.set_timeout(settings.TIMEOUT_ESPERA)
 
             self._click(campo_exercicio)
             logger.info("Exercício clicado")

@@ -4,6 +4,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
 from typing import Optional
 
+from utils import settings
+
 import re
 import os
 import time
@@ -19,13 +21,15 @@ class BotBase:
     Padroniza a inicialização do Driver.
     """
 
-    def __init__(self, driver, timeout: int = 10):
+    def __init__(self, driver, timeout: int = settings.TIMEOUT_ESPERA):
         """
         Inicializa o bot com o driver e configura o WebDriverWait padrão.
         
         :param driver: Instância do Selenium WebDriver.
         :param timeout: Tempo padrão de espera explícita (em segundos).
         """
+
+
         self.driver = driver
         self.wait = WebDriverWait(self.driver, timeout=timeout)
 
@@ -103,11 +107,12 @@ class BotBase:
         return None
     
 
-    def _esperar_download_concluir(self, caminho_arquivo, arquivos_anteriores, timeout=120):
+    def _esperar_download_concluir(self, caminho_arquivo, arquivos_anteriores, timeout=settings.TIMEOUT_LONGO):
         """
         Espera até que o arquivo seja completamente baixado na pasta de destino.
         Funciona mesmo que o navegador use nomes temporários diferentes.
         """
+
         pasta = os.path.dirname(caminho_arquivo)
         nome_base = self._sanitize_filename(os.path.basename(caminho_arquivo))
         temporarios = (".crdownload", ".part", ".tmp")

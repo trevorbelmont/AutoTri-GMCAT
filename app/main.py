@@ -3,12 +3,16 @@ import shutil
 from datetime import datetime
 from pipeline import processar_indice, processar_protocolo
 from utils import logger, log_path, section_log, reset_log_file
+from utils import settings
 from utils import abrir_pasta, criar_pasta_resultados
 from gui import iniciar_interface
 
-
 def main():
 
+    # Lê os argumentos do atalho/terminal e configura as variáveis globais
+    settings.setup()
+   
+    
     # função aninhada principal do orquestrador (definida dentro da main)
     def processar(credenciais, protocolos, ics_avulsos, cancelar_event, atualizar_progresso_gui, atualizar_status_gui, iniciar_timer ):
 
@@ -30,6 +34,8 @@ def main():
         # TODO: Modificar os separadores hardcoded para usar a função section_log() definida em logger.py
         #logger.info(f"======= Triagem iniciada em {timestamp_legivel} =======")
         section_log(f" Triagem iniciada em {timestamp_legivel} ",'=',60)
+        logger.info(f"v. {root.title()}")
+        
         
         # --- Formata a lista  de PROTOCOLOS para ficar mais legível [sem colchetes nem áspas simples] -----
         # Quebra a lista em pedaços (chunks) de 3 itens
@@ -46,8 +52,7 @@ def main():
             lista_formatada = "\n ".join([f"\t\t{', '.join(chunk)}" for chunk in chunks])
             logger.info(f"ICs (avulsos) identificados para trigem    ({len(ics_avulsos)}):\n{lista_formatada}")
         
-        #logger.info("==========================================================\n\n")
-        section_log("",'=',60)
+        section_log("",'=',60, addEndLines=2)
         count_protocol = 0
         count_IC = 0
         inicio_exec = datetime.now()

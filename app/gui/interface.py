@@ -3,7 +3,7 @@ from tkinter import messagebox, scrolledtext, ttk
 import threading
 import os
 import sys
-from utils import logger, log_queue
+from utils import logger, log_queue, settings
 from utils import format_by_pattern, format_by_pattern2
 
 import time
@@ -37,7 +37,7 @@ class InterfaceApp:
     def __init__(self, processar_callback):
         self.processar_callback = processar_callback
         self.root = tk.Tk()
-        self.root.title("AutoTri 1.49B - Automação de Triagem")
+        self.root.title("AutoTri 1.52 - Automação de Triagem")
         
         # Estado da Aplicação (variáveis e evento thread)
         self.credenciais = {}
@@ -52,10 +52,10 @@ class InterfaceApp:
         try:
             self.root.iconbitmap(caminho_icone)
             # Log de Sucesso (Opcional, útil para dev)
-            print(f"DEBUG ICONE: Sucesso ao carregar '{ico_name}' em '{caminho_icone}'")
+            logger.debug(f"DEBUG ICONE: Sucesso ao carregar '{ico_name}' em '{caminho_icone}'")
         except Exception as e:
             # Log de Falha Detalhado (O que você pediu)
-            print(f"AVISO ICONE: Não foi possível carregar o ícone '{ico_name}' em '{caminho_icone}': {e}")
+            logger.debug(f"DEBUG - AVISO ICONE: Não foi possível carregar o ícone '{ico_name}' em '{caminho_icone}': {e}")
         # -----------------------------
         
         # Inicializa a Interface

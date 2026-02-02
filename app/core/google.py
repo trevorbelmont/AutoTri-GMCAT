@@ -5,7 +5,7 @@ from selenium.webdriver.common.keys import Keys  # Import necessário para o ENT
 from selenium.webdriver.remote.webelement import WebElement
 from typing import Any, Optional        # modulo de tipagem
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase               # Super classe da herança
 import time
 import os
@@ -18,12 +18,14 @@ class GoogleMapsAuto(BotBase):
 
     def __init__(self, driver, url: str, endereco, pasta_download, timeout: int = 10):
         # Inicializa o Pai (configura self.driver e self.wait)
-        super().__init__(driver, timeout)
+        super().__init__(driver, settings.TIMEOUT_ESPERA)
         """
         :param driver: instância do Selenium WebDriver
         :param url: URL do Google Maps
         :param timeout: tempo de espera padrão para WebDriverWait
         """
+
+        
         self.url = url
         self.endereco = endereco
         self.pasta_download = pasta_download

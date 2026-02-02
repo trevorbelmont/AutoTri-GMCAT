@@ -1,21 +1,16 @@
 import sys
 from pathlib import Path
-import logging      # Importa o módulo de LOGGING padrão do python
-import queue  # Importa fila
+import queue                    
+import logging
 
-# Detecta se está rodando via PyInstaller
+# Detecta se está rodando via PyInstaller, pra salvar os "Detalhes da Triagem"
 if getattr(sys, "frozen", False):
-    ROOT = Path.cwd()  # pasta do PyInstaller
-else:
+    ROOT = Path.cwd()       # pasta do PyInstaller
+else:                       # Se não é executável, salva relativamente na raíz (onde está a venv)
     ROOT = Path(__file__).parent.parent.parent
 
-# Ou, se você quer criar o log junto do executável:
-# ROOT = Path.cwd()
 
-# Arquivo de LOG apenas da última triagem
 # NOTE: Este arquivo é substituído a cada nova triagem
-# Porém Uma cópia dele é enviada e renomeada para pasta de resultado 
-# Isso implementará a persistência do LOG
 LOG_FILE = "Detalhes da Última Triagem.txt"
 
 # Cria pasta do log se não existir
@@ -26,7 +21,7 @@ log_path.parent.mkdir(parents=True, exist_ok=True)
 # Fila com as novas mensagens do log à serem adicionadas ao logger (e que a interface "escuta")
 log_queue = queue.Queue()
 
-# Definimos uma classe QueueHandler para manusear nossa que
+# Definimos uma classe QueueHandler para manusear nossa fila
 class QueueHandler(logging.Handler):
     """Envia registros de log para uma fila thread-safe."""
     def emit(self, record):
@@ -35,6 +30,9 @@ class QueueHandler(logging.Handler):
             log_queue.put(msg)
         except Exception:
             self.handleError(record)
+
+
+
 
 # Limpa o arquivo de Detalhes da Última Triagem.xt
 def reset_log_file():
@@ -61,18 +59,21 @@ def reset_log_file():
 
 
 # Define uma função para gerar separadores de seção
-def section_log(titulo: str, separador: str = "-", largura: int = 50):
+def section_log(titulo: str, separador: str = "-", largura: int = 50, addEndLines: int = 0):
     """
     Gera uma linha de log centralizada e destacada com Título.
     Ex: ----------- < SIATU : 31.00337504/2025-03 > -----------
 
     :param: titulo: (str) A mensagem a ser exibida no centro (entre os separadores)
     :param: separador: (str) o caractére usado como separador (por padrão é '-' mas pode ser ' ', espaço em branco tb) 
-    :largura: (int) a largura da linha da mensagem
+    :param: largura: (int) a largura da linha da mensagem
+    :param: addEndLines: (int) número de quebras de linhas adicionais ao final do section_log
 
     """
     mensagem = f" {titulo} "
     linha_formatada = mensagem.center(largura, separador)
+    linha_formatada += "\n" * addEndLines
+
     logger.info(linha_formatada)
 
 
@@ -94,9 +95,9 @@ queue_handler = QueueHandler()
 queue_handler.setFormatter(console_formatter)
 
 ''' DEFINE O OBJETO LOGGER - utilizando logging.getlogger (do python)'''
-# Logger central
+# Logger central - pode ser alterado posteriormente na main usando setting.setup()
 logger = logging.getLogger("triagem_logger")
-logger.setLevel(logging.INFO)
+logger.setLevel(logging.INFO) 
 logger.addHandler(console_handler)
 logger.addHandler(file_handler)
 logger.addHandler(queue_handler) # Adicionamos a GUI como um destino também.

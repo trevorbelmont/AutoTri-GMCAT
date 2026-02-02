@@ -17,7 +17,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase
 
 
@@ -39,7 +39,7 @@ class SisctmAuto(BotBase):
         checar_popup: bool = True,  # checar_popup também possui valor padrão (se não definido na instanciação)
     ):
         
-        super().__init__(driver, timeout)
+        super().__init__(driver, settings.TIMEOUT_ESPERA)
         self.url = url
         self.usuario = usuario
         self.senha = senha
@@ -85,7 +85,7 @@ class SisctmAuto(BotBase):
             self.driver.execute_script("arguments[0].click();", btn_login)
             logger.info("Login realizado com sucesso")
 
-            time.sleep(10)  # NOTE: o site tem animação e demora pra terminar de carregar,
+            time.sleep(settings.TIMEOUT_ESPERA)  # NOTE: o site tem animação e demora pra terminar de carregar,
                             # mas ter uma forma mais rápida que um sleep de 10 sec fixo pode ser bom (não sei se tem)
 
             # -----------------------------------------------------------
@@ -447,7 +447,7 @@ class SisctmAuto(BotBase):
         )
         self._click(elemento_ortofoto)
         logger.info("Ortofoto selecionada")
-        time.sleep(10)
+        time.sleep(settings.TIMEOUT_ESPERA)
 
         # Print AEREO ORTO
         screenshot_path_orto = os.path.join(self.pasta_download, "CTM_Orto.png")
@@ -504,28 +504,7 @@ class SisctmAuto(BotBase):
         resultado: Dict[str, Optional[str]] = {} # Dicionário que será retornado
 
         logger.info("Garantindo foco no painel de informações...")
-        # Interage (encontra e clica) com o seletor da aba Informações - Isso garante o foco e visibilidade da tabela
-        # Importante para triagem via IC e robustez geral.
-        print(self._interact(nome_log="Aba Informações (sidebar)", #HACK: Tirar este rpint de DEBUG
-            xpath=[
-                # 1) Mais forte
-                "//div[contains(@class,'q-item--clickable')]"
-                "//i[contains(@class,'mdi-map-marker-question-outline')]"
-                "/ancestor::div[contains(@class,'q-item')]",
-
-                # 2) Ícone + subida
-                "//i[contains(@class,'mdi-map-marker-question-outline')]"
-                "/ancestor::div[contains(@class,'q-item')]",
-
-                # 3) Role + classe funcional
-                "//div[@role='listitem' and contains(@class,'q-item--clickable')]",
-            ],
-            css=[
-                # 4) Fallback CSS
-                "div.q-item--clickable i.mdi-map-marker-question-outline"
-            ]
-        ))
-
+       
         # O seletor da interface atualizada (resolve o problema de captura de áreas falhando)
         PAINEL_SELETOR = "#q-app > div > div.q-drawer-container > aside > div > div.fit.row.no-scroll > div.col.bg-white > div > div.col.relative-position > div"
 
@@ -535,7 +514,7 @@ class SisctmAuto(BotBase):
             )
         except TimeoutException:
             logger.warning("ALERTA CRÍTICO: Painel lateral de Informações não encontrado após clique. Retornando vazio na ETAPA SISCTM.")
-            return {} # Sai graciosamente sem quebrar o resto do código
+            return {}
                                    
         # Função auxiliar para ativar item
         def ativar_item(nome_item: str) -> Optional[object]:  # str -> Optional[object]
@@ -548,7 +527,7 @@ class SisctmAuto(BotBase):
                 aria = botao.get_attribute("aria-expanded")
                 if aria != "true":
                     logger.info(f"{nome_item} não está ativo. Ativando...")
-                    botao.click()   # XXX: TODO: migra para utilizar o _click() definido na classe - mais robusto 
+                    self._click(botao)
                     WebDriverWait(botao, 5).until(
                         lambda x: x.get_attribute("aria-expanded") == "true"
                     )

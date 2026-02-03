@@ -3,15 +3,15 @@ import shutil
 from datetime import datetime
 from pipeline import processar_indice, processar_protocolo
 from utils import logger, log_path, section_log, reset_log_file
-from utils import settings
+from utils import settings, CredentialManager
 from utils import abrir_pasta, criar_pasta_resultados
 from gui import iniciar_interface
 
 def main():
 
-    # Lê os argumentos do atalho/terminal e configura as variáveis globais
+    # Lê os argumentos do atalho/terminal e configura as variáveis globais - se tiver credenciais, processa e lê também
     settings.setup()
-   
+    creds_iniciais = CredentialManager._get_initial_creds()
     
     # função aninhada principal do orquestrador (definida dentro da main)
     def processar(credenciais, protocolos, ics_avulsos, cancelar_event, atualizar_progresso_gui, atualizar_status_gui, iniciar_timer ):
@@ -264,7 +264,7 @@ def main():
             root.after(0, resetar_interface) # A main está resetando a interface (não interface.py)
             # Reseta a interface DEPOIS de mover o log pra past de Resultados
 
-    root, resetar_interface, _, iniciar_timer = iniciar_interface(processar)
+    root, resetar_interface, _, iniciar_timer = iniciar_interface(processar,creds_iniciais)
     root.mainloop()
 
 

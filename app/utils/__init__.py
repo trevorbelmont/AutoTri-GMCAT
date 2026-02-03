@@ -1,6 +1,7 @@
 from .logger import logger, log_queue, log_path, section_log, reset_log_file
+from .credentials import CredentialManager
 from .formatters import format_by_pattern, format_by_pattern2
-from .pastas import abrir_pasta, criar_pasta_resultados
+from .pastas import abrir_pasta, criar_pasta_resultados, resource_path
 from .web_driver import driver_context
 from .relatorio import (
     normalizar_nome,
@@ -13,7 +14,8 @@ from .decorators import retry
 
 # O que é importado (variáveis, classes e métodos)
 __all__ = [
-    
+    "CredentialManager",
+    "resource_path",
     "logger",
     "log_queue",
     "log_path",

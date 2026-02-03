@@ -4,43 +4,30 @@ import threading
 import os
 import sys
 from utils import logger, log_queue, settings
-from utils import format_by_pattern, format_by_pattern2
+from utils import format_by_pattern, format_by_pattern2, resource_path
+from typing import Callable, Optional, Dict
 
 import time
 from datetime import timedelta
 
 
-def resource_path(relative_path: str) -> str:
-    """ Retorna o caminho absoluto para recursos (como ícones) (Dev vs PyInstaller) """
-    try:
-        # Modo PyInstaller: procura a pasta temporária MEIPASS
-        base_path = sys._MEIPASS
-
-    except Exception: # Se não achou a pasta MEIPASS, então está rodando no interpretador
-
-        # Modo Desenvolvimento (Baseado na localização do módulo atual, interface.py)
-        # O arquivo interface.py está em: .../app/gui/
-        # O ícone está em:                .../app/
-        
-        # Pega a pasta atual do arquivo (app/gui)
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        
-        # Sobe um nível para chegar em 'app/' (onde o ícone deve estar)
-        base_path = os.path.dirname(current_dir)
-
-    return os.path.join(base_path, relative_path)
-
-
 class InterfaceApp:
     """ A classe que define o objeto de interface usando TKinter, callbacks e threads. """
      
-    def __init__(self, processar_callback):
+    def __init__(self, processar_callback: Callable, default_creds_CRD_MNGR: Dict [str, str] ):
+        ''' Construtor do objeto InterfaceApp que é chamado no fim deste módulo na função wrapper, _iniciar_interface().
+        Essa função wrapper é uma função de compatibilidade com o sistema de interface legado e não pertence à essa classe. 
+        Porém instancia e devolve as entidades necessárias pra main.'''
+
         self.processar_callback = processar_callback
         self.root = tk.Tk()
         self.root.title("AutoTri 1.52 - Automação de Triagem")
+
+        # Guarda as credenciais default (vindas do Credential Manager) que podem ser vazias.
+        self.default_creds = default_creds_CRD_MNGR 
         
         # Estado da Aplicação (variáveis e evento thread)
-        self.credenciais = {}
+        self.credenciais = {}           # o campo das credenciais finais da interface (pós processamento).
         self.protocolos = []
         self.indices_avulsos = []
         self.cancelar_event = threading.Event()
@@ -67,7 +54,7 @@ class InterfaceApp:
 # NOTE:  --------> self._NomeDaVarDoWidget_.winfo_exists() checa se o widget existe
 
     def _configurar_widgets(self):
-        """Define todo o layout e widgets da janela."""
+        """Define todo o layout e widgets da janela. E, se houver credenciais legadas do CrentialManager, auto-preenche."""
 
         # --- Configuração de Responsividade das Colunads da Interface ---
         self.root.geometry("600x600") 
@@ -100,9 +87,11 @@ class InterfaceApp:
             Os outros widgets seguem similarmente ao primeiro.'''
         self.entry_usuario_sigede.grid(row=0, column=1, sticky='e', padx=5, pady=5)
 
+
         tk.Label(self.root, text="Senha SIGEDE:").grid(row=1, column=0, sticky="w", padx=5, pady=5)
         self.entry_senha_sigede = tk.Entry(self.root, show="*", width=30)
         self.entry_senha_sigede.grid(row=1, column=1, sticky='e', padx=5, pady=5)
+
         
         tk.Label(self.root, text="Usuário SIATU:").grid(row=2, column=0, sticky="w", padx=5, pady=5)
         self.entry_usuario = tk.Entry(self.root, width = 30)
@@ -112,9 +101,24 @@ class InterfaceApp:
         self.entry_senha = tk.Entry(self.root, show="*", width=30)
         self.entry_senha.grid(row=3, column=1, sticky='e', padx=5, pady=5)
 
+
+        # ---- Se houver Credencias legadas do Credential Manager, auto-preenche.
+        if self.default_creds.get("_sgd_cred_user"):
+            self.entry_usuario_sigede.insert(0, self.default_creds["_sgd_cred_user"])
+        if self.default_creds.get("_sgd_cred_pass"):
+            self.entry_senha_sigede.insert(0, self.default_creds["_sgd_cred_pass"])
+        if self.default_creds["_stu_cred_user"]:
+            self.entry_usuario.insert(0, self.default_creds["_stu_cred_user"])
+        if self.default_creds["_stu_cred_pass"]:
+            self.entry_senha.insert(0, self.default_creds["_stu_cred_pass"])
+
         # --- Primeiro Separador (Protocolos e Botões)---
+        
         # sticky="ew": Estica de ponta a ponta
         ttk.Separator(self.root, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky="ew", pady=2)
+
+
+    
 
         # --------------------------------------- Protocolos ---------------------------------------
         '''     >>> Widget: tkinter.scrolledtext.ScrolledText() - Elemento NÃO NATIVO, presente no módulo tkinter.scrolledtext
@@ -406,12 +410,16 @@ class InterfaceApp:
             self.root.after(100, self.atualizar_logs)
 
 # --- Função Wrapper para manter compatibilidade com main.py ---
-def iniciar_interface(processar_callback):
+def iniciar_interface(processar_callback: Callable, default_creds_CRD_MNGR: Dict[str, str] = None):
     """
     Função de entrada original mantida para compatibilidade.
     Instancia a classe e retorna o que o main.py espera.
     """
-    app = InterfaceApp(processar_callback)
+
+    # Tratamento caso venha None (para segurança)
+    if default_creds_CRD_MNGR is None:
+        default_creds_CRD_MNGR = {}
+    app = InterfaceApp(processar_callback, default_creds_CRD_MNGR)
     
     # O main.py espera receber: root, função_reset, evento_cancelar
     return app.root, app.resetar_interface, app.cancelar_event, app.iniciar_cronometro_simples

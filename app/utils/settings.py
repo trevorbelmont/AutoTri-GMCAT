@@ -9,6 +9,7 @@ DEBUG = False               # Se True: Logs mais detalhados, navegador não fech
 TIMEOUT_ESPERA = 10.0         # Tempo padrão para esperar elementos na tela (WebDriverWait)
 TIMEOUT_DOWNLOAD = 120.0        # Tempo para downloads pesados ou processamentos demorados (RemoteConnection)
 NOT_HEADLESS = False        # Se True: Exibe o navegador (roda em primeiro plano)
+_ARG_CREDS = {}
 
 def setup():
     """
@@ -16,6 +17,8 @@ def setup():
     e atualiza as variáveis globais deste módulo (que é importado em múltiplos outros módulos).
     """
     global DEBUG, TIMEOUT_ESPERA, TIMEOUT_DOWNLOAD, NOT_HEADLESS
+    global _ARG_CREDS
+    
 
     parser = argparse.ArgumentParser(description="Automação de Triagem - Configurações de Execução")
 
@@ -49,6 +52,10 @@ def setup():
         help="Tempo limite longo (em segundos) para downloads e processamentos pesados."
     )
 
+    # Parser de credencias cruas: exemplo  --setSigedeCred "usuario_siged::senha_sigede"
+    parser.add_argument("--setSigedeCreds", "--setSigedeCred", "-sSgdCs",type=str,dest="_sigede_creds_raw",help=argparse.SUPPRESS)
+    parser.add_argument("--setSiatuCreds",  "--setSiatuCred", "-sStuCs",type=str,dest="_siatu_creds_raw",help=argparse.SUPPRESS)
+
     # Parseia os argumentos
     args = parser.parse_args()
 
@@ -57,6 +64,12 @@ def setup():
     TIMEOUT_ESPERA = args.timeout
     TIMEOUT_DOWNLOAD = args.timeout_download
     NOT_HEADLESS = args.not_headless
+    _ARG_CREDS.update({
+        "sigede_creds_raw": args._sigede_creds_raw,
+        "siatu_creds_raw": args._siatu_creds_raw,
+    })
+
+
 
     if DEBUG:
         logger.setLevel(logging.DEBUG)
@@ -66,3 +79,7 @@ def setup():
 
     # Feedback no terminal (útil para debug visual ao iniciar)
     logger.debug(f"[SETTINGS] Configuração Carregada: DEBUG={DEBUG}, NOT_HEADLESS={NOT_HEADLESS} TIMEOUT_ESPERA={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s")
+
+# Getter para o CredentialManager acessar os args brutos de forma encapsulada
+def _get_cli_credentials():
+    return _ARG_CREDS

@@ -13,6 +13,7 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException,
 )
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -30,13 +31,13 @@ class SisctmAuto(BotBase):
 
     def __init__(
         self,
-        driver,
+        driver: WebDriver,
         url: str,
         usuario: str,
         senha: str,
         pasta_download: str,
-        timeout: int = 10,          # timeout é definido com valor padrão (se não definido na instanciação do objeto)
-        checar_popup: bool = True,  # checar_popup também possui valor padrão (se não definido na instanciação)
+        timeout: float = 10.0,
+        checar_popup: bool = True,
     ):
         
         super().__init__(driver, settings.TIMEOUT_ESPERA)

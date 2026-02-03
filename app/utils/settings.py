@@ -6,8 +6,8 @@ from .logger import logger      # Importa o nosso wrapper de LOGS
 
 # Valores pré settados de variáveis "globais":
 DEBUG = False               # Se True: Logs mais detalhados, navegador não fecha em erro, etc.
-TIMEOUT_ESPERA = 10         # Tempo padrão para esperar elementos na tela (WebDriverWait)
-TIMEOUT_LONGO = 120         # Tempo para downloads pesados ou processamentos demorados (RemoteConnection)
+TIMEOUT_ESPERA = 10.0         # Tempo padrão para esperar elementos na tela (WebDriverWait)
+TIMEOUT_DOWNLOAD = 120.0        # Tempo para downloads pesados ou processamentos demorados (RemoteConnection)
 NOT_HEADLESS = False        # Se True: Exibe o navegador (roda em primeiro plano)
 
 def setup():
@@ -15,7 +15,7 @@ def setup():
     Lê os argumentos passados via linha de comando (ou atalho do Windows)
     e atualiza as variáveis globais deste módulo (que é importado em múltiplos outros módulos).
     """
-    global DEBUG, TIMEOUT_ESPERA, TIMEOUT_LONGO, NOT_HEADLESS
+    global DEBUG, TIMEOUT_ESPERA, TIMEOUT_DOWNLOAD, NOT_HEADLESS
 
     parser = argparse.ArgumentParser(description="Automação de Triagem - Configurações de Execução")
 
@@ -36,16 +36,16 @@ def setup():
     # Argumento --timeout (Número Inteiro. Padrão 10)
     parser.add_argument(
         "--timeout", 
-        type=int, 
-        default=10, 
+        type=float, 
+        default=10.0, 
         help="Tempo limite padrão (em segundos) para esperar elementos na tela durante os carregamentos das páginas."
     )
     
     # Argumento --timeout-longo (Número Inteiro. Padrão 120)
     parser.add_argument(
-        "--timeout-longo", 
-        type=int, 
-        default=120, 
+        "--timeout-download", "--timeout-longo", 
+        type=float, 
+        default=120.0, 
         help="Tempo limite longo (em segundos) para downloads e processamentos pesados."
     )
 
@@ -55,7 +55,7 @@ def setup():
     # Atualiza as variáveis globais com o que veio do argumento
     DEBUG = args.debug
     TIMEOUT_ESPERA = args.timeout
-    TIMEOUT_LONGO = args.timeout_longo
+    TIMEOUT_DOWNLOAD = args.timeout_download
     NOT_HEADLESS = args.not_headless
 
     if DEBUG:
@@ -65,4 +65,4 @@ def setup():
         logger.setLevel(logging.INFO)
 
     # Feedback no terminal (útil para debug visual ao iniciar)
-    logger.debug(f"[SETTINGS] Configuração Carregada: DEBUG={DEBUG}, NOT_HEADLESS={NOT_HEADLESS} TIMEOUT_ESPERA={TIMEOUT_ESPERA}s, TIMEOUT_LONGO={TIMEOUT_LONGO}s")
+    logger.debug(f"[SETTINGS] Configuração Carregada: DEBUG={DEBUG}, NOT_HEADLESS={NOT_HEADLESS} TIMEOUT_ESPERA={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s")

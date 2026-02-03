@@ -3,6 +3,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys  # Import necessário para o ENTER
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.remote.webdriver import WebDriver
 from typing import Any, Optional        # modulo de tipagem
 
 from utils import logger, settings
@@ -16,7 +17,14 @@ class GoogleMapsAuto(BotBase):
     Classe para automatizar tarefas relacionadas ao Google Maps via Selenium - classe que herda de BotBase.
     """
 
-    def __init__(self, driver, url: str, endereco, pasta_download, timeout: int = 10):
+    def __init__(
+        self, 
+        driver: WebDriver, 
+        url: str, 
+        endereco: str, 
+        pasta_download: str, 
+        timeout: float = 10.0
+    ):
         # Inicializa o Pai (configura self.driver e self.wait)
         super().__init__(driver, settings.TIMEOUT_ESPERA)
         """

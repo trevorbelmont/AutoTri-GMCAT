@@ -5,6 +5,7 @@ from utils import logger, settings
 from .base import BotBase
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
@@ -22,9 +23,16 @@ class UrbanoAuto(BotBase):
         pasta_download (str): Caminho da pasta onde os arquivos baixados serão armazenados.
     """
 
-    def __init__(self, driver, url, usuario, senha, pasta_download):
+    def __init__(
+        self, 
+        driver: WebDriver, 
+        url: str, 
+        usuario: str, 
+        senha: str, 
+        pasta_download: str
+    ):
 
-        super().__init__(driver, settings.TIMEOUT_ESPERA//2)
+        super().__init__(driver, settings.TIMEOUT_ESPERA/2)
 
         self.url = url
         self.usuario = usuario
@@ -98,7 +106,7 @@ class UrbanoAuto(BotBase):
             # Divisão do índice
             parte1, parte2, parte3 = indice[0:3], indice[3:7], indice[7:11]
 
-            time.sleep(settings.TIMEOUT_ESPERA//2)
+            time.sleep(settings.TIMEOUT_ESPERA/2)
 
             # Preenche campos
             campo1 = self.wait.until(

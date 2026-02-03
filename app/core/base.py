@@ -2,6 +2,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.remote.webdriver import WebDriver
 from typing import Optional
 
 from utils import settings
@@ -21,7 +22,7 @@ class BotBase:
     Padroniza a inicialização do Driver.
     """
 
-    def __init__(self, driver, timeout: int = settings.TIMEOUT_ESPERA):
+    def __init__(self, driver:WebDriver, timeout: Optional[float] = None):
         """
         Inicializa o bot com o driver e configura o WebDriverWait padrão.
         
@@ -29,7 +30,10 @@ class BotBase:
         :param timeout: Tempo padrão de espera explícita (em segundos).
         """
 
-
+        if timeout is None: 
+            self.timeout = settings.TIMEOUT_ESPERA
+        else:
+            self.timeout = timeout
         self.driver = driver
         self.wait = WebDriverWait(self.driver, timeout=timeout)
 
@@ -107,11 +111,14 @@ class BotBase:
         return None
     
 
-    def _esperar_download_concluir(self, caminho_arquivo, arquivos_anteriores, timeout=settings.TIMEOUT_LONGO):
+    def _esperar_download_concluir(self, caminho_arquivo, arquivos_anteriores, timeout_download:float = None):
         """
         Espera até que o arquivo seja completamente baixado na pasta de destino.
         Funciona mesmo que o navegador use nomes temporários diferentes.
         """
+
+        if timeout_download is None:
+            timeout_download = settings.TIMEOUT_DOWNLOAD
 
         pasta = os.path.dirname(caminho_arquivo)
         nome_base = self._sanitize_filename(os.path.basename(caminho_arquivo))
@@ -141,8 +148,8 @@ class BotBase:
                 ):
                     return True
 
-            if time.time() - inicio > timeout:
-                logger.warning("Timeout aguardando download: %s", caminho_arquivo)
+            if time.time() - inicio > timeout_download:
+                logger.warning("Timeout aguardando download: %s por %f segundos", caminho_arquivo)
                 return False
 
             time.sleep(0.2)

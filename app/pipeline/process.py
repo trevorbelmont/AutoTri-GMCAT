@@ -37,7 +37,7 @@ def processar_protocolo(protocolo: str, credenciais: Dict[str, str], pasta_resul
     section_log(f"< SIGEDE  - Protocolo: {protocolo} >") # Adiciona, nos LOGs, o separador de seção do SIGEDE
     indices: List[str] = Sigede().executar(protocolo, credenciais, pasta_protocolo)
 
-    logger.debug(f"DEBUG Sigede:  {indices}")
+    logger.debug(f"processar_indice: Sigede:  {indices}")
 
     return indices      # Retorna Lista de Índices Cadastrais (IC) a serem processados
 
@@ -92,7 +92,7 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     anexos_count: int
     (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
 
-    logger.debug(f"DEBUG Siatu: {dados_pb, anexos_count}")
+    logger.debug(f"processar_indice: Siatu: {dados_pb, anexos_count}")
     
     # Calcula e atualiza a progress bar para após o Siatu
     if progressBarUpdater and progressBarDict:  # Calcula
@@ -113,7 +113,7 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
     projetos_count: int
     (dados_projeto, projetos_count) = Urbano().executar(indice, credenciais, pasta_indice)
 
-    logger.debug(f"DEBUG Urbano: {dados_projeto, projetos_count}")
+    logger.debug(f"processar_indice: Urbano: {dados_projeto, projetos_count}")
 
     # Calcula e atualiza a progress bar para após o Urbano
     if progressBarUpdater and progressBarDict:  # Calcula
@@ -128,13 +128,13 @@ def processar_indice(indice: str, credenciais: Dict[str, str], protocolo: str, p
         statusUpdater(status)                         
     section_log(f"< SISCTM  -  IC: {indice} >")   # Adiciona seção SIATU pra cada índice nos LOGS
 
-    logger.debug("DEBUG - pré execução do Sisctm.executar()")
+    logger.debug("processar_indice: - pré execução do Sisctm.executar()")
     logger.debug (indice)
     logger.debug (pasta_indice)
         
     dados_sisctm: Dict[str, Any] = {}
     dados_sisctm = Sisctm().executar(indice, credenciais, pasta_indice)
-    logger.debug(f"DEBUG Sisctm: \n{dados_sisctm}")
+    logger.debug(f"processar_indice: Sisctm: \n{dados_sisctm}")
 
     # Calcula e atualiza a progress bar para após o Sisctm
     if progressBarUpdater and progressBarDict:  # Calcula

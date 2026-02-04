@@ -1,5 +1,7 @@
-from typing import Dict
-from . import settings
+from typing import Dict, Generator
+from contextlib import contextmanager
+from utils import settings
+from utils import logger
 
 class CredentialManager:
     '''A responsável por Gerenciar as Credenciais - venham de onde venham.'''
@@ -8,6 +10,25 @@ class CredentialManager:
     '''def __init__(): pass NOTE: poderíamos definir um construtor para forçar CredManager ser de fato uma Classe...
     Não o faremos pq aqui seria mais interessante usar o __init__ implícito, (ao invés de impedir instanciação com erros ou forçar o pass)
     que nesse caso faz CredManager ser tratado como namespace. Ao invés de classe - em nível de interpretação.'''
+
+
+    @staticmethod
+    @contextmanager
+    def session_manager() -> Generator[Dict[str, str], None, None]:
+        """
+        Context Manager Seguro: Entrega as credenciais e GARANTE a limpeza delas memória global ao sair do bloco 'with' e em sessions.
+        """
+        
+        creds = CredentialManager._get_initial_creds()
+        tem_conteudo = any(valor.strip() for valor in creds.values() if valor)
+        try:
+            yield creds
+        finally:
+            settings.limpar_memoria_credenciais()
+            creds.clear()   # Limpa o dict de creds (aqui e na interface.py)
+            if tem_conteudo:
+                logger.debug("[CREDENTIAL MANAGER] Credenciais injetadas na interface e removidas da memória Python com Sucesso.\n\n")
+
 
     @staticmethod
     def _parse_credential_string(raw_string: str) -> tuple[str, str]:

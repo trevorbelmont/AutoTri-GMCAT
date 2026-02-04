@@ -1,8 +1,8 @@
 import argparse
 import sys
 
-import logging                  # Importa o módulo de LOGGING padrão do python
-from .logger import logger      # Importa o nosso wrapper de LOGS
+import logging                              # Importa o módulo de LOGGING padrão do python
+from .logger import logger, section_log     # Importa o nosso wrapper de LOGS
 
 # Valores pré settados de variáveis "globais":
 DEBUG = False               # Se True: Logs mais detalhados, navegador não fecha em erro, etc.
@@ -73,13 +73,26 @@ def setup():
 
     if DEBUG:
         logger.setLevel(logging.DEBUG)
-        logger.debug(f"::: MODO DEBUG ATIVADO ::: \nNível mínimo de Log alterado para DEBUG.")
+        section_log(f"MODO DEBUG ATIVADO",':',60,1)
+        logger.debug(f"Nível mínimo de Log alterado para DEBUG.")
     else:
         logger.setLevel(logging.INFO)
 
     # Feedback no terminal (útil para debug visual ao iniciar)
-    logger.debug(f"[SETTINGS] Configuração Carregada: DEBUG={DEBUG}, NOT_HEADLESS={NOT_HEADLESS} TIMEOUT_ESPERA={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s")
+    logger.debug(f"[SETTINGS] Configuração Carregada:\n       DEBUG={DEBUG},NOT_HEADLESS={NOT_HEADLESS},\n       TIMEOUT={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s")
 
 # Getter para o CredentialManager acessar os args brutos de forma encapsulada
 def _get_cli_credentials():
     return _ARG_CREDS
+
+def limpar_memoria_credenciais():
+    """
+    Remove as credenciais da memória global do módulo (singleton) settings.py.
+    """
+    global _ARG_CREDS
+    # Em Python, .clear() em dicionário remove o conteúdo mantendo o objeto.
+    # É melhor do que 'del _ARG_CREDS' pois não quebra referências de outros lugares, mas esvazia o conteúdo sensível.
+    tem_conteudo = any(valor.strip() for valor in _ARG_CREDS.values() if valor)
+    _ARG_CREDS.clear()
+    if(tem_conteudo):
+        logger.debug("[SETTINGS] Memória de credenciais limpa neste módulo.")

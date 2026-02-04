@@ -5,7 +5,8 @@ import os
 import sys
 from utils import logger, log_queue, settings
 from utils import format_by_pattern, format_by_pattern2, resource_path
-from typing import Callable, Optional, Dict
+from typing import Callable, Optional, Dict, Any
+
 
 import time
 from datetime import timedelta
@@ -21,7 +22,7 @@ class InterfaceApp:
 
         self.processar_callback = processar_callback
         self.root = tk.Tk()
-        self.root.title("AutoTri 1.52 - Automação de Triagem")
+        self.root.title("AutoTri 1.52a - Automação de Triagem")
 
         # Guarda as credenciais default (vindas do Credential Manager) que podem ser vazias.
         self.default_creds = default_creds_CRD_MNGR 
@@ -110,15 +111,13 @@ class InterfaceApp:
         if self.default_creds["_stu_cred_user"]:
             self.entry_usuario.insert(0, self.default_creds["_stu_cred_user"])
         if self.default_creds["_stu_cred_pass"]:
-            self.entry_senha.insert(0, self.default_creds["_stu_cred_pass"])
+            self.entry_senha.insert(0, self.default_creds["_stu_cred_pass"])        
 
         # --- Primeiro Separador (Protocolos e Botões)---
         
         # sticky="ew": Estica de ponta a ponta
         ttk.Separator(self.root, orient='horizontal').grid(row=4, column=0, columnspan=2, sticky="ew", pady=2)
 
-
-    
 
         # --------------------------------------- Protocolos ---------------------------------------
         '''     >>> Widget: tkinter.scrolledtext.ScrolledText() - Elemento NÃO NATIVO, presente no módulo tkinter.scrolledtext

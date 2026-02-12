@@ -172,7 +172,7 @@ class SiatuAuto(BotBase):
 
                 except TimeoutException:
                     logger.info(f"Link '{nome}' não encontrado, seguindo...")
-
+            
             self._print_alteracoes()
 
             return dados_PB

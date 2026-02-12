@@ -188,7 +188,8 @@ def gerar_relatorio(
             elementos.append(Spacer(1, 12))
 
     # Prepara anexos (com renomeação no disco para nomes seguros)
-    anexos_planta, anexos_siatu, anexos_projetos, anexos_sisctm, anexos_google = (
+    anexos_planta, anexos_siatu, anexos_projetos, anexos_sisctm, anexos_google, anexos_kml = (
+        [],
         [],
         [],
         [],
@@ -233,6 +234,8 @@ def gerar_relatorio(
                 anexos_projetos.append(arq)
             elif "CTM" in arq:
                 anexos_sisctm.append(arq)
+            elif arq.lower().endswith(".kml") or "poligono" in arq.lower():
+                anexos_kml.append(arq)
             elif "google" in arq:
                 anexos_google.append(arq)
             else:
@@ -334,6 +337,19 @@ def gerar_relatorio(
         )
 
     logger.info("Adicionando seção 4: Dados SISCTM")
+
+    anexos_sessao_4 = anexos_sisctm.copy()
+
+    if anexos_kml:
+        # Se houver KML, adicionamos à lista de anexos do SISCTM
+        anexos_sessao_4.extend(anexos_kml)
+        nota_kml = (
+            "<br/><br/><b>Nota:</b> Clique no arquivo .kml acima para visualizar " 
+            "o polígono no Google Earth instalado ou carregue-o no Google Earth Web."
+        )
+    else:
+        nota_kml = ""
+
     if dados_sisctm:
         nomes_legiveis = {
             "iptu_ctm_geo_area_terreno": "Área de Terreno (SIATU)",
@@ -348,13 +364,18 @@ def gerar_relatorio(
             "endereco_ctmgeo",
         ]
         gerar_tabela_secao(
-            "4. Dados SISCTM", dados_sisctm, chaves, nomes_legiveis, anexos_sisctm
+            "4. Dados SISCTM", dados_sisctm, chaves, nomes_legiveis, anexos_sessao_4
         )
+        if nota_kml:
+            elementos.insert(-1, Paragraph(nota_kml, style_normal))
+            elementos.insert(-1, Spacer(1, 12))
     else:
         gerar_tabela_secao(
             "4. Dados SISCTM - IC NÃO ENCONTRADO ou LOTE NÃO CENTRALIZADO",
             anexos=anexos_sisctm,
         )
+        if nota_kml:
+            elementos.insert(-1, Paragraph(nota_kml, style_normal))
 
     logger.info("Adicionando seção 5: Google Maps")
     if anexos_google:

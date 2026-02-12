@@ -3,7 +3,7 @@ from functools import wraps
 from .logger import logger
 
 
-def retry(max_retries=3, delay=5, exceptions=(Exception,)):
+def retry(max_retries=3, delay=5.0, exceptions=(Exception,)):
     """
     Decorador para repetir a execução de uma função em caso de erro.
     Nesse contexto, não é necessário refresh do Selenium, porque
@@ -11,7 +11,7 @@ def retry(max_retries=3, delay=5, exceptions=(Exception,)):
 
     Args:
         max_retries (int): número máximo de tentativas.
-        delay (int): tempo (segundos) para esperar entre tentativas.
+        delay (float): tempo (segundos) para esperar entre tentativas.
         exceptions (tuple): exceções que devem disparar retry.
     """
 

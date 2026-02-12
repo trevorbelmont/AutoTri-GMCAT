@@ -6,6 +6,7 @@ from .sistemas import Urbano
 from .sistemas import Sisctm
 from .sistemas import GoogleMaps
 from .sistemas import Sigede
+from .sistemas import Poligono
 
 import os
 from typing import Tuple, Dict, List, Any, Callable, Optional
@@ -24,7 +25,7 @@ def processar_protocolo(
     section_log(f"< SIGEDE  - Protocolo: {protocolo} >")
     indices: List[str] = Sigede().executar(protocolo, credenciais, pasta_protocolo)
 
-    logger.debug(f"processar_indice: Sigede:  {indices}")
+    logger.debug(f"processar_indice: Sigede:  {indices}\n")
 
     return indices
 
@@ -69,7 +70,7 @@ def processar_indice(
 
     (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
 
-    logger.debug(f"processar_indice: Siatu: {dados_pb, anexos_count}")
+    logger.debug(f"processar_indice: Siatu: {dados_pb, anexos_count}\n")
 
     # Calcula e atualiza a progress bar para após o Siatu
     if progressBarUpdater and progressBarDict:
@@ -90,7 +91,7 @@ def processar_indice(
         indice, credenciais, pasta_indice
     )
 
-    logger.debug(f"processar_indice: Urbano: {dados_projeto, projetos_count}")
+    logger.debug(f"processar_indice: Urbano: {dados_projeto, projetos_count}\n")
 
     # Calcula e atualiza a progress bar para após o Urbano
     if progressBarUpdater and progressBarDict:
@@ -106,18 +107,41 @@ def processar_indice(
 
     logger.debug("processar_indice: - pré execução do Sisctm.executar()")
     logger.debug(indice)
-    logger.debug(pasta_indice)
+    logger.debug(f"{pasta_indice}\n")
 
     dados_sisctm: Dict[str, Any] = {}
     dados_sisctm = Sisctm().executar(indice, credenciais, pasta_indice)
-    logger.debug(f"processar_indice: Sisctm: \n{dados_sisctm}")
+    logger.debug(f"processar_indice: Sisctm: \n{dados_sisctm}\n")
 
     # Calcula e atualiza a progress bar para após o Sisctm
     if progressBarUpdater and progressBarDict:
-        taxa = 0.4 if VIRTUAL_PRTCL else 0.3
+        taxa = 0.35 if VIRTUAL_PRTCL else 0.25
         increment = (progressBarDict["peso_tarefa"] * taxa) * porcao_de_progresso
         progressBarDict["atual"] += increment
         progressBarUpdater(progressBarDict["atual"])
+
+    # ------ STATUS, LOG e EXECUÇÃO :: POLÍGONO ------
+    if statusUpdater:
+        status = f"{status_title}  -  POLÍGONO KML :  ({indice})"
+        statusUpdater(status)
+    section_log(f"< POLÍGONO  -  IC: {indice} >")    
+    
+    kml_gerado: bool = False
+    try:
+        kml_gerado = Poligono().executar(indice, pasta_indice)
+    except Exception as e:
+        logger.warning(f"Não foi possível obter o polígono: {e}\n")
+
+    
+    if kml_gerado:
+        logger.info(f"Sucesso: Polígono KML integrado à pasta do IC {indice}.\n")
+        
+    # Calcula e atualiza a progress bar para após o Polígono
+    if progressBarUpdater and progressBarDict:
+        increment = (progressBarDict["peso_tarefa"] * 0.05) * porcao_de_progresso
+        progressBarDict["atual"] += increment
+        progressBarUpdater(progressBarDict["atual"])
+    
 
     # ------ STATUS, LOG e EXECUÇÃO :: GOOGLE MAPS ------
     if statusUpdater:

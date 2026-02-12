@@ -58,11 +58,9 @@ def criar_driver(
     add_config: flag experimental HTTP.
     """
     chrome_options = Options()
-    if not settings.NOT_HEADLESS:
-        chrome_options.add_argument(
-            "--headless=new"
-        )  # Executar em segundo plano (por padrão)
-
+    if not settings.NOT_HEADLESS: 
+        chrome_options.add_argument("--headless=new")  # Executar em segundo plano (por padrão)
+        
     chrome_options.add_argument("--start-maximized")  # Executar navegador maximizdo. ¬
     chrome_options.add_argument("--disable-popup-blocking")
     chrome_options.add_argument("--ignore-certificate-errors")
@@ -94,14 +92,14 @@ def criar_driver(
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    # driver = webdriver.Chrome(options=chrome_options) #¬ duplicidade da instanciação (só essa última que vale, me parece)
+    #driver = webdriver.Chrome(options=chrome_options) #¬ duplicidade da instanciação (só essa última que vale, me parece)
     return driver
 
 
 @contextmanager
 def driver_context(pasta_indice, perfil=None, nome_perfil="Default", add_config=None):
     """
-    Cria, usa e finaliza webdriver - (context manager).
+    Cria, usa e finaliza webdriver.
     """
     driver = None
     try:

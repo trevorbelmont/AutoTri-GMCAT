@@ -1,7 +1,7 @@
 from typing import List, Dict, Any, Tuple, Optional
 from pipeline.interface import SistemaAutomacao
-from core import SiatuAuto, UrbanoAuto, SisctmAuto, GoogleMapsAuto, SigedeAuto
-from utils import driver_context, logger, retry
+from core import SiatuAuto, UrbanoAuto, SisctmAuto, GoogleMapsAuto, SigedeAuto,PoligonoAuto
+from utils import driver_context, logger, retry, settings
 
 
 class Sigede(SistemaAutomacao):
@@ -54,7 +54,8 @@ class Siatu(SistemaAutomacao):
         # Ativa a flag: --unsafely-treat-insecure-origin-as-secure durante a criação do driver_context
         add_config = True
 
-        @retry(max_retries=4, delay=5, exceptions=(Exception,))
+
+        @retry(max_retries=settings.RETRY_MAX, delay=settings.RETRY_DELAY, exceptions=(Exception,))
         def fluxo_siatu():
 
             with driver_context(pasta_indice, add_config=add_config) as driver:
@@ -138,6 +139,48 @@ class Sisctm(SistemaAutomacao):
         logger.info(f"SISCTM concluído para índice {indice}.\n")
         return dados_sisctm
 
+class Poligono(SistemaAutomacao):
+    """
+    Adapter para o serviço de Geoprocessamento (WFS).
+    Responsável por baixar o arquivo KML do terreno para visualização no Google Earth.
+    """
+
+    def _formatar_ic_excecao(self, ic: str) -> str:
+        """
+        Formata índices que fogem ao padrão de 13 caracteres (6-3-4).
+        Ex: 981142W0020015 -> 981142W002 0015
+        """
+        if len(ic) > 13:
+            # Pega os últimos 4 (lote) e o restante vira a primeira parte
+            return f"{ic[:-4]} {ic[-4:]}"
+        return ic
+
+    
+    def executar(
+        self, 
+        indice: str, 
+        pasta_indice: str
+    ) -> bool:
+        """
+        Executa a captura do polígono KML. 
+        """
+        
+        poligono_bot = PoligonoAuto(pasta_download=pasta_indice)
+
+        sucesso = poligono_bot.capturar_kml(indice)
+
+        if not sucesso:
+            ic_puro = indice.replace(" ", "").replace(".", "").replace("-", "").strip()
+            ic_f2 = self._formatar_ic_excecao(ic_puro)
+            logger.info(f"Tentando novamente com IC na formatação: {ic_f2}")
+            sucesso = poligono_bot.capturar_kml(ic_f2)
+
+        if sucesso:
+            logger.info(f"Arquivo KML gerado com sucesso para {indice}.\n")
+        else:
+            logger.warning(f"Não foi possível obter o KML para {indice}.\n")
+
+        return sucesso
 
 class GoogleMaps(SistemaAutomacao):
     """Adapter para o Google Maps.

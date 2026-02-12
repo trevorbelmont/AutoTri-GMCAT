@@ -22,7 +22,7 @@ class InterfaceApp:
 
         self.processar_callback = processar_callback
         self.root = tk.Tk()
-        self.root.title("AutoTri 1.52a - Automação de Triagem")
+        self.root.title("AutoTri 1.54a - Automação de Triagem")
 
         # Guarda as credenciais default (vindas do Credential Manager) que podem ser vazias.
         self.default_creds = default_creds_CRD_MNGR 
@@ -141,8 +141,8 @@ class InterfaceApp:
         #--------------------------- ÍNDICES CADASTRAIS ---------------------------------------
 
         tk.Label(self.root,
-                text=  "Índices Cadastrais:\n(Separados por VÍRGULAS)\n"
-                        "Ex: 3120160070011, 9290310040014, 9290280290013",
+                text=  "Índices Cadastrais:\n(15 Caracteres sparados por VÍRGULAS)\n"
+                        "Ex: 312016 007 0011, 312024A025 0010, 929028A829B0013",
                 justify= "left",
                 ).grid(row=6, column=0, stick='nw', padx=5,pady = 15)
         
@@ -233,17 +233,18 @@ class InterfaceApp:
             # Limpa (reseta) e cria a lista de índices (com List Comprehension)
             self.indices_avulsos.clear()
             
-            # Padrão PBH: 6 dígitos (Regional) + Espaço + 3 dígitos (Quadra) + Espaço + 4 dígitos (Lote)
-            MASK_PBH = "###### ### ####" 
+            
 
             for i in raw_indices:
-                if not i.strip(): continue
+                idc_limpo = i.strip()
                 
+                if not idc_limpo: continue
+
+                if (len(idc_limpo) == 15):                
+                    self.indices_avulsos.append(idc_limpo)
+                else:
+                    logger.warning(f"Índice Cadastra {i} não será triado pois não está no padrão de 15 caracteres esperado.")
                 
-                ic_fmt = format_by_pattern2(i.strip(), MASK_PBH)
-                
-                if ic_fmt:
-                    self.indices_avulsos.append(ic_fmt)
             
             # ---------------- BARREIRA DE VALIDAÇÃO ----------------
             # Checa se as entradas estão preenchidas (não checa validade de credenciais - que é feita em tempo de execução)

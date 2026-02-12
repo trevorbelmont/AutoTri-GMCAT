@@ -9,73 +9,88 @@
 ## Link deste Repositório
 ### [Link Repo GitHub - main branch](https://github.com/trevorbelmont/AutoTri-GMCAT)
 
+# **AutoTri \- Introdução**
 
-# **AutoTri \- Versão 1.52a \[Alpha\]  - ChangeLog**
+[**Link do Repositório**](https://github.com/trevorbelmont/AutoTri-GMCAT/tree/cleaning?tab=readme-ov-file)
 
-**04/02/2026**
+O **AutoTri** é uma plataforma de automação robótica de processos (RPA) desenvolvida para otimizar a triagem técnica de processos administrativos e imobiliários. O software atua como um orquestrador central que integra diversos bots que acessam múltiplos sistemas governamentais e ferramentas de geoprocessamento em um pipeline único e automatizado.
 
-## **Resumo** 
+O programa foi programado com interface gráfica para inserção de credenciais, protocolos e índices cadastrais, facilitando o seu uso. No entanto, desde a versão 1.52a, o software é capaz de receber argumentos via linha de comando que podem ser usados para depuração de bugs ou automação do próprio sistema.
 
-Atualiza usabilidade, segurança e refatora sistemas de automação da navegação automatizada e o sistema de credenciais. Também melhora a depuração e centraliza manutenção do bot-core através de hierarquia de classes.   
-	O foco principal foi eliminar riscos no manuseio de dados sensíveis e padronizar o comportamento dos robôs para facilitar manutenções futuras e escalabilidade. Também implementa auto-complete de campos via CredentialManager (e passagem de argumentos) e implementa um maior controle de variáveis comuns na automação da navegação de forma simples, possibilitando automatização do próprio AutoTri e maior independência da Interface Gráfica.
+## **1\. Funcionamento do Software**
 
-* **🔐 Segurança de Dados (Novo Módulo de Credenciais):** Implementação de uma blindagem no fluxo de autenticação. O sistema agora recebe de forma centralizada credenciais de forma automatizada e segura \- e também garante que senhas sejam removidas ("limpas") da memória do computador imediatamente após o uso. Elevando o nível de compliance e segurança da ferramenta.  
-* **🏗️ Padronização dos Robôs (BotBase):** Realizamos uma reestruturaçãono núcleo de automação. Todos os robôs (SIGEDE, SIATU, Urbano, etc.) agora obedecem a uma "Inteligência Central" (Classe Mãe), que gerencia tempos de espera e estratégias de clique e variáveis comuns à todos os bots. Isso capacita a aplicação a adequar-se mais facilmente (via linha de comando) à condições de conexão e pode reduzir erros intermitentes causados por lentidão na rede \- ou funcionar mais eficientemente em conexões melhores ou testes. O principal benefício é, no entanto, centralizar os ajustes de comportamentos comuns dos robôs (comportamentos específicos de cada bot continuam específicos).  
-* **🐞 Diagnóstico Avançado (Debug Dinâmico):** Aprimoramento do sistema de registros (Logs). Agora é possível alterar o nível de detalhe do robô via configuração simples de inicialização, agilizando o diagnóstico de problemas em ambientes de produção.
+O AutoTri opera através de um fluxo de trabalho linear e modular, projetado para transformar dados brutos de entrada (Protocolos SIGEDE ou Índices Cadastrais avulsos) em um dossiê técnico completo.
 
-## ---
+### **Como ele funciona:**
 
-**Changelog Técnico**
+1. **Entrada de Dados:** O usuário insere as credenciais e os identificadores (protocolos ou ICs) via interface gráfica (GUI).  
+2. **Orquestração de Pipeline:** O sistema inicia uma thread de processamento que percorre sequencialmente os adaptadores de automação que simulam a interação do usuário com um navegador (navegando, preenchendo campos textuais, fazendo downloads e tirando prints da tela):  
+   * **SIGEDE:** Identifica os índices cadastrais vinculados a um protocolo.  
+   * **SIATU:** Extrai dados da Planta Básica e realiza o download de anexos documentais.  
+   * **URBANO:** Captura dados de licenciamento, alvarás e projetos de edificação.  
+   * **SISCTM:** Coleta evidências visuais (prints) e dados de geoprocessamento da malha cadastral.  
+   * **EARTH:** Realiza o download direto de arquivos KML para visualização em 3D.  
+   * **GOOGLE MAPS:** Captura imagens de satélite e fachada para conferência visual.  
+3. **Consolidação:** Após a execução, o software organiza todos os arquivos baixados em pastas estruturadas por protocolo e índice.
 
-### **🔐 Segurança & Gerenciamento de Credenciais \[Novo\]**
+### **O que ele devolve:**
 
-Implementação do módulo **utils/credentials.py** para gestão segura do ciclo de vida de dados sensíveis.
+* **Relatório de Triagem (PDF):** Um documento consolidado com tabelas de dados comparativos, links para anexos e notas técnicas.  
+* **Dossiê Digital:** Uma estrutura de pastas contendo todos os arquivos originais (PDFs, imagens, KMLs) capturados durante o processo.
 
-* **CredentialManager (Static Class):** Atua como *Single Source of Truth* para credenciais, desacoplando a origem dos dados da interface de consumo.  
-* **CredentialManager.session\_manager():** Implementação de um *Context Manager* (gerenciado de contexto via  ***with***). As credenciais são alocadas na memória estritamente durante a inicialização do **InterfaceApp**.  
-* **Security Wipe (Limpeza de Memória):** Ao sair do contexto de inicialização, o sistema invoca **settings.limpar\_memoria\_credenciais()** e executa **clear(**) no dicionário injetado. Isso garante que não restem variáveis contendo senhas na memória Python durante o tempo de execução (*runtime*).  
-* **Argumentos Ocultos (CLI):** Adição de suporte a argumentos de linha de comando suprimidos (--setSigedeCred, \--setSiatuCred) para injeção de credenciais em ambientes de desenvolvimento e automação, sem exposição no menu de ajuda público.
+## 
 
-### **🤖 Arquitetura & BotCore (Refatoração)**
+## **2\. Tecnologias Utilizadas**
 
-Centralização de lógica repetitiva na nova classe pai **app/core/base.py**, seguindo princípios SOLID/DRY.
+A arquitetura do AutoTri baseia-se em tecnologias de ponta para automação web e processamento de dados:
 
-* **Classe BotBase:** Implementada como superclasse para todos os módulos de automação (SigedeAuto, SiatuAuto, etc.).  
-  * **Variáveis Comuns:** Centralização de self.timeout (com *fallback* automático para settings.py), self.driver e a instância persistente de **self.wait** (WebDriverWait), eliminando instanciações redundantes nos robôs filhos.  
-  * **Método BotBase.\_click(...):** Migração da lógica híbrida de clique (Tentativa nativa \+ Fallback via JavaScript injection) para a classe base.  
-  * **Método BotBase.\_interact(...):** Centralização da lógica de interação robusta com *fallback* de seletores. O método itera sobre estratégias (ID, XPath, CSS, etc.) sequencialmente até localizar o elemento ou esgotar as tentativas.  
-  * **Método BotBase.\_esperar\_download\_concluir(...):** Lógica de monitoramento do sistema de arquivos (*File System Polling*) movida para a base, padronizando a verificação de integridade de downloads e a sanitização de nomes de arquivos em todos os sistemas.
+* **Linguagem:** Python 3.x (Núcleo do sistema e orquestração).  
+* **Automação Web:** Selenium WebDriver (Interação com interfaces complexas).  
+* **Requisições de Rede:** `curl_cffi` (Utilizado para bypass de firewall e captura rápida de polígonos).  
+* **Interface Gráfica:** Tkinter (GUI para interação com o usuário).  
+* **Geração de Documentos:** ReportLab (Criação de PDFs dinâmicos).  
+* **Segurança de Credenciais:** `CredentialManager` (Gerenciamento de sessões e memória segura).
 
-### **🛠️ Logging, Debugging & Configuração**
+## **3\. Segurança e Proteção de Dados**
 
-Refatoração do sistema de logs para suportar níveis dinâmicos e novos argumentos de linha de comando no módulo settings.py.
+A segurança foi implementada como um pilar central da aplicação para proteger informações sensíveis:
 
-* **Nível de Log Dinâmico:** O logger agora responde ao argumento \--**debug**. A lógica condicional manual foi removida em favor de **logger.setLevel(logging.DEBUG)**, permitindo o controle granular da verbosidade.  
-* **Novos Argumentos CLI (Públicos):**  
-  * \--**timeout (float)**: Define o tempo padrão de espera global (TIMEOUT\_ESPERA).  
-  * **\--timeout-download (float):** Define o tempo limite para operações longas e downloads.  
-  * **\--show-browser** ou **\--not-headless (**alias **\-sb, \-nhdls):** Força a exibição do navegador para debug visual durante a execução.  
-* **Depuração/ Reprodutibilidade de Erros:** Depuração de dicionários e variáveis usadas na automação (camada de serviço) no [process.py](http://process.py) (do **executar()** de todos bots que se relacionam com plataformas governamentais).
+* **Sessões Voláteis:** O software utiliza o `CredentialManager` para garantir que as credenciais inseridas existam apenas durante a execução da thread de processamento.  
+* **Limpeza de Memória:** Ao final de cada execução ou em caso de encerramento prematuro, o método `limpar_memoria_credenciais()` é invocado para esvaziar os dicionários de memória global do módulo `settings`.  
+* **Bypass de Logs:** Senhas e chaves sensíveis são suprimidas dos arquivos de log e do sistema de ajuda da CLI (`argparse.SUPPRESS`).
 
-### **🎨 Interface & UX**
+## **4\. Robustez e Resiliência**
 
-Ajustes na InterfaceApp e no orquestrador main.py para suportar a nova arquitetura.
+Para enfrentar instabilidades inerentes aos sistemas web governamentais, o AutoTri emprega estratégias de robustez:
 
-* **Auto-Preenchimento Seguro:** A InterfaceApp detecta e consome o dicionário de credenciais injetado pelo **CredentialManager**, preenchendo os campos visuais (**tk.Entry**) sem persistir os dados sensíveis na lógica interna da classe.  
-* **Orquestração Híbrida (main.py):** Refinamento do fluxo de processamento para distinguir **Protocolos Reais** (que executam a etapa SIGEDE) de **Protocolos Virtuais** (Lotes de Índices Avulsos), ajustando dinamicamente a Barra de Progresso e a criação de pastas.  
-* **Validação de Logs:** Ajuste na lógica de logs de injeção para evitar falsos positivos quando o dicionário de credenciais é inicializado vazio.
+* **Lógica de Retry:** O decorador `@retry` permite que falhas momentâneas de carregamento ou rede sejam superadas automaticamente através de novas tentativas configuráveis.  
+* **Isolamento de Erros:** O pipeline é projetado para que a falha em um sistema secundário (como a captura do polígono KML) não interrompa a triagem principal ou a geração do relatório.
 
-### **🔄 Resiliência**
+## **5\. Robôs de Automação (bot-core)**
 
-* **Isolamento de Falhas no SISCTM (v. 1.49b):** Refatoração do método capturar\_areas. A extração de dados foi dividida em blocos independentes (try/except) para "IPTU CTM GEO" e "Lote CP". A falha na localização de uma camada não interrompe mais a captura da outra nem trava a automação.
+Esta seção detalha o funcionamento dos motores de automação (os "bots") que compõem o núcleo do **AutoTri**. Todos os robôs foram construídos sobre uma fundação comum chamada **BotBase**, que garante que eles compartilhem a mesma inteligência para clicar em botões, esperar o carregamento de páginas e nomear arquivos de forma segura.
 
-### ---
+Podemos dividir os 7 bots em três grupos principais, de acordo com a forma como interagem com a tecnologia:
 
-**Próximos Passos (TO DO)**
+### **5.1. Exploradores de Sistemas (SIGEDE, SIATU e URBANO)**
 
-* **\[Repositório\]** Limpeza do código da branch main (*merged* com o estado atual da branch de documentação) para adequar-se a filosofia clean code e migrar o conteúdo da pasta misc para guia Wiki ou pro drive de documentação.  
-* **\[Documentação\]** Continuar documentando os pacotes que ainda não foram documentados.  
-* **\[Segurança\]** Considerar implementar leitura de credenciais a partir de arquivos criptografados (.ini / .dat) utilizando criptografia simétrica, visando substituir a injeção via *plain text*.  
-* **\[Configuração\]** Parametrizar as variáveis do decorador @retry (número de tentativas e delay) via settings.py.  
-* **\[Logging\]** Implementar VisualFormatter para hierarquizar visualmente os logs de DEBUG com indentação, facilitando o rastreio de fluxos aninhados e leitura.
+Estes robôs são os responsáveis por navegar nos sistemas governamentais. Eles funcionam através de uma simulação de comportamento humano via navegador (*WebDriver*).
+
+* **Lógica de Trabalho:** Eles realizam o login, percorrem menus complexos e localizam processos ou índices específicos.  
+* **Extração Documental:** São programados para identificar links de download e aguardar a conclusão de cada arquivo de forma paciente, garantindo que nenhum documento (como o Inteiro Teor ou a Planta Básica) seja perdido por lentidão dos servidores externos.  
+* **Persistência:** Em caso de erros de carregamento, eles utilizam uma lógica de "tentativa e erro" (fallback) para tentar localizar o elemento desejado por diferentes caminhos antes de desistir.
+
+### **5.2. Capturadores Visuais (SISCTM e Google Maps)**
+
+Este grupo foca na geração de evidências visuais e dados geográficos. Eles também utilizam o navegador para "enxergar" o que um analista veria na tela.
+
+* **Mapeamento e Prints:** O robô do **SISCTM** navega por mapas digitais, ativa camadas de informação (como lotes ativos e tributação) e captura "fotos" aéreas e ortofotos.  
+* **Contexto Urbano:** O bot do **Google Maps** utiliza os endereços encontrados para capturar imagens de satélite e a fachada dos imóveis (Street View), enriquecendo a triagem com o contexto real do terreno.
+
+### **5.3. Especialistas em Dados e Documentos (Polígono KML e Relatórios)**
+
+Estes dois componentes operam de forma distinta dos anteriores, pois não dependem de navegação visual ou cliques em sites.
+
+* **Robô de Polígono (WFS):** Diferente dos demais, este bot não abre um navegador. Ele se comunica diretamente com os servidores de dados geográficos da prefeitura por meio de requisições de rede invisíveis, o que o torna extremamente rápido e imune a mudanças visuais em sites. Ele entrega o arquivo `.kml` pronto para ser aberto no Google Earth. Este robô foi desenvolvido baseado no código pega\_poligono.py, escrito pelo servidor Daniel Viana.  
+* **Robô de Consolidação (Relatórios):** Este é o motor final que não interage com a internet. Sua função é ler todos os dados e imagens coletados pelos outros 6 robôs e "escrever" o relatório PDF final, organizando as informações de forma clara e profissional para o analista.
 

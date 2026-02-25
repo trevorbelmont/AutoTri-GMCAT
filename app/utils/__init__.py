@@ -1,4 +1,4 @@
-from .logger import logger, log_queue, log_path, section_log, reset_log_file
+from .logger import logger, log_queue, log_path, section_log, reset_log_file, lot_logger_config
 from .credentials import CredentialManager
 from .formatters import format_by_pattern, format_by_pattern2
 from .pastas import abrir_pasta, criar_pasta_resultados, resource_path
@@ -20,6 +20,7 @@ __all__ = [
     "log_queue",
     "log_path",
     "section_log",
+    "lot_logger_config",
     "reset_log_file",
     "settings",
     "format_by_pattern",

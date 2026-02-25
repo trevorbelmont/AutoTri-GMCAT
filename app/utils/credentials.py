@@ -27,7 +27,7 @@ class CredentialManager:
             settings.limpar_memoria_credenciais()
             creds.clear()   # Limpa o dict de creds (aqui e na interface.py)
             if tem_conteudo:
-                logger.debug("[CREDENTIAL MANAGER] Credenciais injetadas na interface e removidas da memória Python com Sucesso.\n\n")
+                logger.debug("[CREDENTIAL MANAGER] Credenciais injetadas na interface e removidas da memória Python com Sucesso.")
 
 
     @staticmethod

@@ -12,6 +12,7 @@ TIMEOUT_DOWNLOAD = 120.0        # Tempo para downloads pesados ou processamentos
 NOT_HEADLESS = False        # Se True: Exibe o navegador (roda em primeiro plano)
 RETRY_MAX = 4
 RETRY_DELAY = 5.0
+LOT_DEBUGGER = False
 _ARG_CREDS = {}
 
 def setup():
@@ -20,7 +21,7 @@ def setup():
     e atualiza as variáveis globais deste módulo (que é importado em múltiplos outros módulos).
     """
     global DEBUG, TIMEOUT_ESPERA, TIMEOUT_DOWNLOAD, RETRY_MAX, RETRY_DELAY
-    global _ARG_CREDS, NOT_HEADLESS
+    global _ARG_CREDS, NOT_HEADLESS, LOT_DEBUGGER
     
 
     parser = argparse.ArgumentParser(description="Automação de Triagem - Configurações de Execução")
@@ -59,7 +60,7 @@ def setup():
         "--retry", "--retries", 
         type=int,
         dest="retry", 
-        default=4, 
+        default=2, 
         help="Define o número máximo de retries (tentativas) do decorador @retry - usado no Siatu."
     )
     parser.add_argument(
@@ -68,6 +69,12 @@ def setup():
         dest="retry_delay", 
         default=5.0, 
         help="Define o tempo de espera (delay) em segundos entre as retries do decorador @retry - usado no Siatu."
+    )
+
+    parser.add_argument(
+        "--lot-debugger", "-ltdbg",
+        action="store_true",
+        help="Gera um arquivo secundário ('Log de Erros.txt') apenas com falhas críticas da última triagem."
     )
 
     # Parser de credencias cruas: exemplo  --setSigedeCred "usuario_siged::senha_sigede"
@@ -84,6 +91,7 @@ def setup():
     RETRY_MAX = args.retry
     RETRY_DELAY = args.retry_delay
     NOT_HEADLESS = args.not_headless
+    LOT_DEBUGGER = args.lot_debugger
     _ARG_CREDS.update({
         "sigede_creds_raw": args._sigede_creds_raw,
         "siatu_creds_raw": args._siatu_creds_raw,
@@ -101,7 +109,7 @@ def setup():
     # Feedback no terminal (útil para debug visual ao iniciar)
     logger.debug(f"[SETTINGS] Configuração Carregada:\n       DEBUG={DEBUG}, NOT_HEADLESS={NOT_HEADLESS},\n"
                  f"       TIMEOUT={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s\n"
-                 f"       RETRY_MAX ={RETRY_MAX}, RETRY_DELAY={RETRY_DELAY}"
+                 f"       RETRY_MAX ={RETRY_MAX}, RETRY_DELAY={RETRY_DELAY}, LOT_DEBUGGER={LOT_DEBUGGER}"
                  )
 
 # Getter para o CredentialManager acessar os args brutos de forma encapsulada

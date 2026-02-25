@@ -58,7 +58,7 @@ class PoligonoAuto(BotBase):
             if response.status_code == 200:
                 content = response.text
                 
-                # Validação: Verifica se o retorno contém coordenadas válidas
+                
                 if "coordinates" not in content:
                     logger.warning(f"Polígono não encontrado para o IC {clean_id} (Servidor retornou mapa vazio).")
                     return False
@@ -74,7 +74,7 @@ class PoligonoAuto(BotBase):
                 # Insere o estilo logo após a tag Placemark de forma robusta
                 content = re.sub(r'(<[\w:]*Placemark[^>]*>)', r'\1' + red_style, content)
 
-                # Escrita do arquivo no diretório de triagem do IC
+                
                 with open(caminho_final, "w", encoding="utf-8") as f:
                     f.write(content)
                 

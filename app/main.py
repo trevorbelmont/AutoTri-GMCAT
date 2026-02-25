@@ -1,8 +1,9 @@
+import logging
 import os
 import shutil
 from datetime import datetime
 from pipeline import processar_indice, processar_protocolo
-from utils import logger, log_path, section_log, reset_log_file
+from utils import logger, log_path, section_log, reset_log_file, lot_logger_config
 from utils import settings, CredentialManager
 from utils import abrir_pasta, criar_pasta_resultados
 from gui import iniciar_interface
@@ -18,8 +19,10 @@ def main():
         # Cria pasta_resultados - neste método o momento 'agora' das Time Stamps são definidos
         # NOTE: a Time Stamp da pasta resultados será propagada para o início do Logger e demais coisas.
         pasta_resultados = criar_pasta_resultados()
+        lot_logger_config(pasta_resultados,settings.LOT_DEBUGGER)     # Ativa o log de erros se "--lot-logger" foi passado por argumento.
         
-        
+        lvl = logging.WARNING if settings.LOT_DEBUGGER else logging.INFO
+
         # Extrai o nome da pasta para usar no cabeçalho
         # Ex: "Resultados - 08 de janeiro de 2026 14h25"
         nome_pasta = os.path.basename(pasta_resultados)
@@ -30,6 +33,8 @@ def main():
         # Escreve o cabeçalho do LOG unificiado (arquivo e GUI)
         # TODO: Modificar os separadores hardcoded para usar a função section_log() definida em logger.py
         #logger.info(f"======= Triagem iniciada em {timestamp_legivel} =======")
+
+        logger.debug("\n\n")
         section_log(f" Triagem iniciada em {timestamp_legivel} ",'=',60)
         logger.info(f"v. {root.title()}")
         
@@ -142,9 +147,9 @@ def main():
                 
                 # Atualiza StatusText e Loga o bloco formatado do início do processamento de um novo protocolo
                 atualizar_status_gui(msg_status)
-                logger.info(separador)
-                logger.info(titulo_log.center( len(separador) )) # .center() centraliza o texto na linha (de acordo com o tamanho separador)
-                logger.info(separador + "\n")
+                logger.log(lvl,f"{separador}")
+                logger.log(lvl, f"{titulo_log.center( len(separador) )}") # .center() centraliza o texto na linha (de acordo com o tamanho separador)
+                logger.log(lvl, f"{separador}" + "\n")
                 # ---------------------------------
 
                 if cancelar_event.is_set():

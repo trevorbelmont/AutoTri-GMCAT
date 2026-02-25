@@ -20,7 +20,7 @@ class InterfaceApp:
 
         self.processar_callback = processar_callback
         self.root = tk.Tk()
-        self.root.title("AutoTri 1.54a - Automação de Triagem")
+        self.root.title("AutoTri 1.56a - Automação de Triagem")
 
         # Guarda as credenciais default (vindas do Credential Manager) que podem ser vazias.
         self.default_creds = default_creds_CRD_MNGR 

@@ -170,10 +170,9 @@ class Poligono(SistemaAutomacao):
         sucesso = poligono_bot.capturar_kml(indice)
 
         if not sucesso:
-            ic_puro = indice.replace(" ", "").replace(".", "").replace("-", "").strip()
-            ic_f2 = self._formatar_ic_excecao(ic_puro)
-            logger.info(f"Tentando novamente com IC na formatação: {ic_f2}")
-            sucesso = poligono_bot.capturar_kml(ic_f2)
+            ic_lower = indice.lower().strip()
+            logger.info(f"Tentando novamente com IC na formatação: {ic_lower}")
+            sucesso = poligono_bot.capturar_kml(ic_lower)
 
         if sucesso:
             logger.info(f"Arquivo KML gerado com sucesso para {indice}.\n")

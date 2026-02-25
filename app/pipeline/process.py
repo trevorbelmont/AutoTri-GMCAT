@@ -1,4 +1,5 @@
 from utils import logger, section_log
+
 from utils import settings
 from core import gerar_relatorio
 from .sistemas import Siatu
@@ -8,7 +9,7 @@ from .sistemas import GoogleMaps
 from .sistemas import Sigede
 from .sistemas import Poligono
 
-import os
+import os, logging
 from typing import Tuple, Dict, List, Any, Callable, Optional
 
 
@@ -22,8 +23,19 @@ def processar_protocolo(
     pasta_protocolo = os.path.join(pasta_resultados, protocolo)
     os.makedirs(pasta_protocolo, exist_ok=True)
 
-    section_log(f"< SIGEDE  - Protocolo: {protocolo} >")
-    indices: List[str] = Sigede().executar(protocolo, credenciais, pasta_protocolo)
+    lvl = logging.WARNING if settings.LOT_DEBUGGER else logging.INFO
+
+    context = f"PROTOCOLO: {protocolo}"     
+
+    section_log(f"< SIGEDE  - Protocolo: {protocolo} >","-",50,0,lvl)
+    indices: List[str] = []
+    
+    try:
+        indices = Sigede().executar(protocolo, credenciais, pasta_protocolo)
+        if not indices:
+            logger.warning(f"⚠️ {context} | ETAPA: SIGEDE | AVISO: Nenhum IC encontrado ou erro no acesso.\n")
+    except Exception as e:
+        logger.error(f"🚫🚫 {context} | ETAPA: SIGEDE | ERRO FATAL: {e}\n")
 
     logger.debug(f"processar_indice: Sigede:  {indices}\n")
 
@@ -44,8 +56,10 @@ def processar_indice(
     """
     Execução dos módulos SIATU, URBANO e SISCTM para o IC especificado. Também Gera relatório e Cria a pasta do IC.
     """
-
+    indice = indice.upper().strip()
     porcao_de_progresso = 1.0
+    context = f"PROTOCOLO: {protocolo} | IC: {indice}"
+    lvl = logging.WARNING if settings.LOT_DEBUGGER else logging.INFO
 
     if (
         progressBarDict is not None
@@ -63,13 +77,19 @@ def processar_indice(
     if statusUpdater:
         status = f"{status_title}  -  SIATU  :  ({indice})"
         statusUpdater(status)
-    section_log(f"< SIATU  -  IC: {indice} >")
+    section_log(f"< SIATU  -  IC: {indice} >", level = lvl)
 
     dados_pb: Dict[str, Any]
     anexos_count: int
 
-    (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
-
+    try:
+        (dados_pb, anexos_count) = Siatu().executar(indice, credenciais, pasta_indice)
+        if not dados_pb:
+            logger.warning(f"⚠️ {context} | ETAPA: SIATU | AVISO: dados_pb não capturados.\n")
+    except Exception as e:
+        logger.error(f"🚫 {context} | ETAPA: SIATU | ERRO FATAL: {e}\n")
+        dados_pb, anexos_count = {}, 0
+    
     logger.debug(f"processar_indice: Siatu: {dados_pb, anexos_count}\n")
 
     # Calcula e atualiza a progress bar para após o Siatu
@@ -82,14 +102,18 @@ def processar_indice(
     if statusUpdater:
         status = f"{status_title}  -  URBANO  :  ({indice})"
         statusUpdater(status)
-    section_log(f"< URBANO  -  IC: {indice} >")
+    section_log(f"< URBANO  -  IC: {indice} >", level = lvl)
 
     dados_projeto: Dict[str, Any]
     projetos_count: int
 
-    (dados_projeto, projetos_count) = Urbano().executar(
-        indice, credenciais, pasta_indice
-    )
+    try:
+        (dados_projeto, projetos_count) = Urbano().executar(indice, credenciais, pasta_indice)
+        if not dados_projeto:
+            logger.warning(f"⚠️ {context} | ETAPA: URBANO | AVISO: Falha na captura de projetos/alvarás.\n")
+    except Exception as e:
+        logger.error(f"🚫 {context} | ETAPA: URBANO | ERRO: {e}\n")
+        dados_projeto, projetos_count = {}, 0
 
     logger.debug(f"processar_indice: Urbano: {dados_projeto, projetos_count}\n")
 
@@ -103,14 +127,20 @@ def processar_indice(
     if statusUpdater:
         status = f"{status_title}  -  SISCTM  :  ({indice})"
         statusUpdater(status)
-    section_log(f"< SISCTM  -  IC: {indice} >")
+    section_log(f"< SISCTM  -  IC: {indice} >", level = lvl )
 
     logger.debug("processar_indice: - pré execução do Sisctm.executar()")
     logger.debug(indice)
     logger.debug(f"{pasta_indice}\n")
 
     dados_sisctm: Dict[str, Any] = {}
-    dados_sisctm = Sisctm().executar(indice, credenciais, pasta_indice)
+    try:
+        dados_sisctm = Sisctm().executar(indice, credenciais, pasta_indice)
+        if not dados_sisctm:
+            logger.warning(f"⚠️ {context} | ETAPA: SISCTM | AVISO: Falha na captura de áreas IPTU/GEO.\n")
+    except Exception as e:
+        logger.error(f"🚫 {context} | ETAPA: SISCTM | ERRO: {e}\n")
+
     logger.debug(f"processar_indice: Sisctm: \n{dados_sisctm}\n")
 
     # Calcula e atualiza a progress bar para após o Sisctm
@@ -124,14 +154,15 @@ def processar_indice(
     if statusUpdater:
         status = f"{status_title}  -  POLÍGONO KML :  ({indice})"
         statusUpdater(status)
-    section_log(f"< POLÍGONO  -  IC: {indice} >")    
+    section_log(f"< POLÍGONO  -  IC: {indice} >", level = lvl)    
     
     kml_gerado: bool = False
     try:
         kml_gerado = Poligono().executar(indice, pasta_indice)
+        if not kml_gerado:
+            logger.warning(f"⚠️ {context} | ETAPA: POLÍGONO | AVISO: KML não disponível.\n")
     except Exception as e:
-        logger.warning(f"Não foi possível obter o polígono: {e}\n")
-
+        logger.error(f"🚫 {context} | ETAPA: POLÍGONO | Não foi possível obter o polígono. ERRO: {e}\n")
     
     if kml_gerado:
         logger.info(f"Sucesso: Polígono KML integrado à pasta do IC {indice}.\n")
@@ -147,8 +178,11 @@ def processar_indice(
     if statusUpdater:
         status = f"{status_title}  -  G-MAPS  :  ({indice})"
         statusUpdater(status)
-    section_log(f"< GOOGLE MAPS  -  IC: {indice} >")
-    GoogleMaps().executar(indice, dados_sisctm, dados_pb, pasta_indice)
+    section_log(f"< GOOGLE MAPS  -  IC: {indice} >", level = lvl)
+    try:
+        GoogleMaps().executar(indice, dados_sisctm, dados_pb, pasta_indice)
+    except Exception as e:
+        logger.error(f"🚫 {context} | ETAPA: GOOGLE MAPS | ERRO: {e}\n")
 
     # Calcula e atualiza a progress bar para após o Google Maps
     if progressBarUpdater and progressBarDict:  # Calcula
@@ -175,4 +209,4 @@ def processar_indice(
         dados_sisctm=dados_sisctm,
         ic_avulso=VIRTUAL_PRTCL,
     )
-    logger.info(f"Relatório gerado!\n\n")
+    logger.log(lvl,f"Relatório gerado para {context}!\n\n")

@@ -2,6 +2,7 @@ import sys
 from pathlib import Path
 import queue                    
 import logging
+import os
 
 # Detecta se está rodando via PyInstaller, pra salvar os "Detalhes da Triagem"
 if getattr(sys, "frozen", False):
@@ -32,6 +33,23 @@ class QueueHandler(logging.Handler):
             self.handleError(record)
 
 
+def lot_logger_config(pasta_resultados:str, activate_extra_log: bool):
+    """
+    Adiciona um handler extra ao logger se activate_extra_log for True.
+    Este handler extra filtra apenas mensagens de nível WARNING ou superior.
+    """
+    from utils import settings
+    if settings.LOT_DEBUGGER:
+        log_lote_path = os.path.join(pasta_resultados, "Log de Erros.txt")
+        
+        
+        lote_handler = logging.FileHandler(log_lote_path, mode="w", encoding="utf-8")
+        lote_handler.setLevel(logging.WARNING)
+        lote_handler.setFormatter(lot_formatter)
+        
+        # Adicionamos ao logger principal (triagem_logger)
+        logger.addHandler(lote_handler)
+        logger.debug(f"[LOGGER] Handler de Lote ativado em: {log_lote_path}")
 
 
 # Limpa o arquivo de Detalhes da Última Triagem.xt
@@ -59,7 +77,7 @@ def reset_log_file():
 
 
 # Define uma função para gerar separadores de seção
-def section_log(titulo: str, separador: str = "-", largura: int = 50, addEndLines: int = 0):
+def section_log(titulo: str, separador: str = "-", largura: int = 50, addEndLines: int = 0,level=logging.INFO):
     """
     Gera uma linha de log centralizada e destacada com Título.
     Ex: ----------- < SIATU : 31.00337504/2025-03 > -----------
@@ -74,7 +92,7 @@ def section_log(titulo: str, separador: str = "-", largura: int = 50, addEndLine
     linha_formatada = mensagem.center(largura, separador)
     linha_formatada += "\n" * addEndLines
 
-    logger.info(linha_formatada)
+    logger.log(level,linha_formatada)
 
 
 # Formatter para o console e GUI (limpo, sem milissegundos)
@@ -82,6 +100,9 @@ console_formatter = logging.Formatter("%(levelname)s: %(message)s")
 
 # Formatter para o arquivo (com timestamp completo)
 file_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+
+# Formatter apenas para o arquivos adicional de Erros e Warnings (para triagem em lote)
+lot_formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s", datefmt="%H:%M")
 
 # Handlers
 console_handler = logging.StreamHandler()

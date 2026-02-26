@@ -10,8 +10,8 @@ DEBUG = False               # Se True: Logs mais detalhados, navegador não fech
 TIMEOUT_ESPERA = 10.0         # Tempo padrão para esperar elementos na tela (WebDriverWait)
 TIMEOUT_DOWNLOAD = 120.0        # Tempo para downloads pesados ou processamentos demorados (RemoteConnection)
 NOT_HEADLESS = False        # Se True: Exibe o navegador (roda em primeiro plano)
-RETRY_MAX = 4
-RETRY_DELAY = 5.0
+RETRY_MAX = 2
+RETRY_DELAY = 10.0
 LOT_DEBUGGER = False
 _ARG_CREDS = {}
 

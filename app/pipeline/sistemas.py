@@ -6,7 +6,7 @@ from utils import driver_context, logger, retry, settings
 
 class Sigede(SistemaAutomacao):
     """Adapter para o sistema SIGEDE. Responsável pela busca de protocolos e identificação de índices cadastrais."""
-
+    
     def executar(
         self, protocolo: str, credenciais: Dict[str, str], pasta_protocolo: str
     ) -> List[str]:
@@ -55,7 +55,7 @@ class Siatu(SistemaAutomacao):
         add_config = True
 
 
-        @retry(max_retries=settings.RETRY_MAX, delay=settings.RETRY_DELAY, exceptions=(Exception,))
+        @retry(exceptions=(Exception,))
         def fluxo_siatu():
 
             with driver_context(pasta_indice, add_config=add_config) as driver:
@@ -185,7 +185,8 @@ class GoogleMaps(SistemaAutomacao):
     """Adapter para o Google Maps.
     Gera evidências visuais (Satélite/Fachada) baseadas em endereços encontrados nos sistemas anteriores.
     """
-
+    
+    @retry(exceptions=(Exception,))
     def executar(
         self,
         indice: str,

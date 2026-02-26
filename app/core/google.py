@@ -39,7 +39,7 @@ class GoogleMapsAuto(BotBase):
             return True
         except Exception as e:
             logger.error(f"Erro ao acessar o Google Maps: {e}")
-            return
+            raise
 
     def navegar(self):
         """Navega até o endereço, muda para satélite, faz prints e Street View."""
@@ -59,7 +59,7 @@ class GoogleMapsAuto(BotBase):
             logger.error(
                 f"ERRO CRÍTICO: Não foi possível encontrar a barra de pesquisa com nenhum seletor!\n ABORTANDO ROTINA NO GOOGLE MAPS E PROSSEGUINDO COM A TRIAGEM."
             )
-            return
+            raise
 
         #  INTERAGE COM O CAMPO ENCONTRADO
         try:
@@ -105,6 +105,7 @@ class GoogleMapsAuto(BotBase):
             logger.warning(f"Erro ao tentar selecionar da lista de resultados: {e}")
 
         # Clica no botão de camada (satélite)
+        error_counter = 0
         try:
             satellite_button = self.wait.until(
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "button.yHc72.qk5Wte"))
@@ -114,6 +115,7 @@ class GoogleMapsAuto(BotBase):
             time.sleep(3)
         except Exception as e:
             logger.warning(f"Não foi possível ativar visualização satélite: {e}")
+            error_counter += 1
 
         # Print Aereo (satélite)
         try:
@@ -133,16 +135,20 @@ class GoogleMapsAuto(BotBase):
             self._click(street_view_button)
             logger.info("Street View ativado")
             time.sleep(5)
-        except Exception as e:
-            logger.warning(f"Não foi possível clicar no Street View: {e}")
-            return
 
-        # Print da fachada
-        try:
             caminho_print_fachada = os.path.join(
                 self.pasta_download, "google_maps_fachada.png"
             )
             self.driver.save_screenshot(caminho_print_fachada)
             logger.info(f"Print da fachada salvo")
         except Exception as e:
-            logger.error(f"Erro ao salvar print da fachada: {e}")
+            logger.warning(f"Não foi possível clicar no Street View para capturar fachada: {e}")
+            error_counter +=1
+
+        if error_counter > 0:
+            msg_erro = f"Automação Google Maps finalizada com {error_counter} erros. Solicitando retentativa (Retry)..."
+            logger.error(msg_erro)
+            raise Exception(msg_erro)
+        
+        logger.info("Automação Google Maps concluída com 100% de sucesso.")
+

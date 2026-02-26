@@ -2,41 +2,34 @@ import time
 import os
 import re
 
-from utils import logger
-from .base import BotBase           # Classe pai da Herança
+from utils import logger, settings
+from .base import BotBase
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
+from typing import Optional
 
 
 class SigedeAuto(BotBase):
     """
-    Classe para automatizar tarefas relacionadas ao SIGEDE via Selenium - classe que herda de BotBase.
-
-    Parâmetros:
-        driver (selenium.webdriver): Instância do WebDriver para controle do navegador.
-        url (str): URL de login ou página inicial do SIGEDE.
-        usuario (str): Nome de usuário para autenticação no sistema.
-        senha (str): Senha do usuário para autenticação.
-        pasta_download (str): Caminho da pasta onde os arquivos baixados serão armazenados.
+    Classe para automatizar tarefas relacionadas ao SIGEDE via Selenium - herda de BotBase.
     """
 
-    def __init__(self, driver, url, usuario, senha, pasta_download):
+    def __init__(
+        self, driver: WebDriver, url: str, usuario: str, senha: str, pasta_download: str
+    ):
 
-        super().__init__(driver,timeout=5)
+        super().__init__(driver, settings.TIMEOUT_ESPERA / 2)
 
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
-    
 
-    def acessar(self):
-        """
-        Aceessa a página inicial do sistema Sigede.
-        """
+    def acessar(self) -> bool:
         try:
             logger.info("Acessando o Sistema 0: SIGEDE")
             self.driver.get(self.url)
@@ -45,10 +38,8 @@ class SigedeAuto(BotBase):
             logger.error("Erro ao acessar o sistema: %s", e)
             return False
 
-    def login(self):
-        """
-        Realiza o login no sistema Sigede.
-        """
+    def login(self) -> bool:
+
         try:
             logger.info("Preenchendo usuário e senha")
             self.wait.until(
@@ -71,12 +62,10 @@ class SigedeAuto(BotBase):
             logger.error("Erro no login: %s", e)
             return False
 
-    def navegar(self, protocolo):
+    def navegar(self, protocolo: str) -> bool:
         """
         Navega até o módulo SisCop e realiza uma busca pelo protocolo fornecido.
 
-        Parâmetros:
-            protocolo (str): Valor a ser pesquisado no SisCop.
         """
         try:
             logger.info("Navegando para o SisCop")
@@ -93,7 +82,6 @@ class SigedeAuto(BotBase):
             self._click(siscop_btn)
             time.sleep(3)
 
-            # Preenche o campo de pesquisa com o protocolo
             search_input = self.wait.until(
                 EC.presence_of_element_located((By.ID, "searchkey"))
             )
@@ -101,7 +89,6 @@ class SigedeAuto(BotBase):
             search_input.send_keys(protocolo)
             logger.info("Protocolo informado: %s", protocolo)
 
-            # Clica no botão pesquisar
             pesquisar_btn = self.wait.until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[@onclick='pesquisar();']")
@@ -128,7 +115,6 @@ class SigedeAuto(BotBase):
         try:
             logger.info("Verificando registros na tabela")
 
-            # Espera a div principal
             panel = self.wait.until(EC.presence_of_element_located((By.ID, "generic")))
 
             # Salva screenshot
@@ -145,7 +131,7 @@ class SigedeAuto(BotBase):
 
             if not rows:
                 logger.info("Nenhum processo encontrado. Encerrando fluxo.")
-                return False
+                return []
 
             # Itera pelas linhas para encontrar valor desejada na coluna Situação
             for row in rows:
@@ -174,20 +160,19 @@ class SigedeAuto(BotBase):
                     return indices
 
             logger.info("Nenhum registro com Situação 'Executando' encontrado.")
-            return False
+            return []
 
         except Exception as e:
             logger.error("Erro ao verificar a tabela: %s", e)
-            return False
+            return []
 
-    def _download_inteiro_teor(self):
+    def _download_inteiro_teor(self) -> Optional[str]:
         """
         Clica no botão 'Inteiro Teor' para disparar o download do PDF e aguarda sua conclusão.
         """
         try:
             logger.info("Iniciando download do Inteiro Teor")
 
-            # Localiza o link pelo texto "Inteiro Teor"
             link = self.wait.until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//a[contains(text(),'Inteiro Teor')]")
@@ -199,11 +184,19 @@ class SigedeAuto(BotBase):
             nome_arquivo = os.path.basename(href) + ".pdf"
             caminho_arquivo = os.path.join(self.pasta_download, nome_arquivo)
 
-            # Clica no link para iniciar o download
+            arquivos_anteriores = {}
+            pasta = os.path.dirname(caminho_arquivo)
+            try:
+                arquivos_anteriores = {
+                    f: os.path.getsize(os.path.join(pasta, f))
+                    for f in os.listdir(pasta)
+                }
+            except FileNotFoundError:
+                arquivos_anteriores = {}
+
             self._click(link)
 
-            # Aguarda o download ser concluído
-            if self._esperar_download_concluir(caminho_arquivo):
+            if self._esperar_download_concluir(caminho_arquivo, arquivos_anteriores):
                 logger.info("Download concluído")
                 return caminho_arquivo
             else:
@@ -284,7 +277,6 @@ class SigedeAuto(BotBase):
 
                 time.sleep(3)
 
-                # Formata o índice
                 indice = (
                     indice.strip().replace("-", "").replace(".", "").replace("/", "")
                 )
@@ -294,7 +286,6 @@ class SigedeAuto(BotBase):
                 indice_formatado = indice[0:11]
                 logger.info("Índice formatado para pesquisa: %s", indice_formatado)
 
-                # Seleciona a opção 'Índice Cadastral' no select
                 select_element = self.wait.until(
                     EC.element_to_be_clickable((By.ID, "searchKeyType"))
                 )
@@ -305,7 +296,6 @@ class SigedeAuto(BotBase):
                         option.click()
                         break
 
-                # Insere o índice no campo de pesquisa
                 logger.info("Inserindo índice no campo de pesquisa")
                 search_input = self.wait.until(
                     EC.presence_of_element_located((By.ID, "searchkey"))
@@ -315,7 +305,6 @@ class SigedeAuto(BotBase):
 
                 time.sleep(1)
 
-                # Clica no botão pesquisar
                 logger.info("Clicando no botão pesquisar")
                 pesquisar_btn = self.wait.until(
                     EC.element_to_be_clickable(
@@ -326,7 +315,6 @@ class SigedeAuto(BotBase):
 
                 time.sleep(2)
 
-                # Salva print da tela
                 screenshot_path = os.path.join(
                     self.pasta_download, f"pesquisa_indice_{indice}.png"
                 )
@@ -338,4 +326,3 @@ class SigedeAuto(BotBase):
         except Exception as e:
             logger.error("Erro ao pesquisar índice cadastral: %s", e)
             return False
-

@@ -10,6 +10,7 @@ import time
 import psutil
 
 from .logger import logger
+from utils import settings
 
 
 def _kill_selenium_driver(driver):
@@ -57,7 +58,9 @@ def criar_driver(
     add_config: flag experimental HTTP.
     """
     chrome_options = Options()
-    chrome_options.add_argument("--headless=new")  # Executar em segundo plano.¬
+    if not settings.NOT_HEADLESS: 
+        chrome_options.add_argument("--headless=new")  # Executar em segundo plano (por padrão)
+        
     chrome_options.add_argument("--start-maximized")  # Executar navegador maximizdo. ¬
     chrome_options.add_argument("--disable-popup-blocking")
     chrome_options.add_argument("--ignore-certificate-errors")

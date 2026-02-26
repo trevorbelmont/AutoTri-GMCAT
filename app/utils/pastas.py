@@ -30,3 +30,25 @@ def criar_pasta_resultados() -> str:
     os.makedirs(pasta_resultados, exist_ok=True)
 
     return pasta_resultados
+
+
+def resource_path(relative_path: str) -> str:
+    """ Retorna o caminho absoluto para recursos (como ícones) (Dev vs PyInstaller) """
+    try:
+        # Modo PyInstaller: procura a pasta temporária MEIPASS
+        base_path = sys._MEIPASS
+
+    except Exception: # Se não achou a pasta MEIPASS, então está rodando no interpretador
+
+        # Modo Desenvolvimento (Baseado na localização do módulo atual, interface.py)
+        # O arquivo interface.py está em: .../app/gui/
+        # O ícone está em:                .../app/
+        
+        # Pega a pasta atual do arquivo (app/gui)
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        
+        # Sobe um nível para chegar em 'app/' (onde o ícone deve estar)
+        base_path = os.path.dirname(current_dir)
+
+    return os.path.join(base_path, relative_path)
+

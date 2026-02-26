@@ -1,38 +1,36 @@
+from ast import Tuple
 import time
 import os
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 
+from typing import Dict, Any, Tuple
+
 
 class UrbanoAuto(BotBase):
     """
-    Classe para automatizar tarefas relacionadas ao sistema Urbano via Selenium.
-
-    Parâmetros:
-        driver (selenium.webdriver): Instância do WebDriver para controle do navegador.
-        url (str): URL de login ou página inicial do sistema Urbano.
-        usuario (str): Nome de usuário para autenticação no sistema.
-        senha (str): Senha do usuário para autenticação.
-        pasta_download (str): Caminho da pasta onde os arquivos baixados serão armazenados.
+    Automatiza tarefas relacionadas ao sistema Urbano via Selenium - herda de BotBase.
     """
 
-    def __init__(self, driver, url, usuario, senha, pasta_download):
+    def __init__(
+        self, driver: WebDriver, url: str, usuario: str, senha: str, pasta_download: str
+    ):
 
-        super().__init__(driver, timeout = 5)
+        super().__init__(driver, settings.TIMEOUT_ESPERA / 2)
 
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
-    
 
-    def acessar(self):
+    def acessar(self) -> bool:
         """Abre o sistema Urbano."""
         try:
             logger.info("Acessando o sistema 2: URBANO")
@@ -42,7 +40,7 @@ class UrbanoAuto(BotBase):
             logger.error("Erro ao acessar o sistema Urbano: %s", e)
             return False
 
-    def login(self):
+    def login(self) -> bool:
         """Realiza login no Urbano PBH."""
         try:
             logger.info("Iniciando login no Urbano")
@@ -56,14 +54,13 @@ class UrbanoAuto(BotBase):
             self._click(btn_acesso)
             logger.info("Botão 'Acesso PBH' clicado")
 
-            # Preenche usuário
+            # Preenche usuário e senha
             campo_usuario = self.wait.until(
                 EC.presence_of_element_located((By.ID, "usuario"))
             )
             campo_usuario.clear()
             campo_usuario.send_keys(self.usuario)
 
-            # Preenche senha
             campo_senha = self.wait.until(
                 EC.presence_of_element_located((By.ID, "senha"))
             )
@@ -84,11 +81,12 @@ class UrbanoAuto(BotBase):
             logger.error("Erro no login do Urbano: %s", e)
             return False
 
-    def download_projeto(self, indice: str):
+    def download_projeto(self, indice: str) -> Tuple[int, Dict[str, Any]]:
         """
         Pesquisa o projeto no Urbano e retorna a quantidade de projetos encontrados.
         Também salva prints e tenta baixar certidão de baixa, alvará ou projeto se existirem.
         """
+        nome_arquivo = "Não identificado (Erro)"
         try:
             logger.info("Iniciando pesquisa de projeto para índice: %s", indice)
             indice = indice.strip()
@@ -98,7 +96,7 @@ class UrbanoAuto(BotBase):
             # Divisão do índice
             parte1, parte2, parte3 = indice[0:3], indice[3:7], indice[7:11]
 
-            time.sleep(5)
+            time.sleep(settings.TIMEOUT_ESPERA / 2)
 
             # Preenche campos
             campo1 = self.wait.until(
@@ -122,7 +120,7 @@ class UrbanoAuto(BotBase):
                 EC.element_to_be_clickable((By.ID, "btnPesquisar"))
             )
             self._click(btn_pesquisar)
-            time.sleep(15)
+            time.sleep(settings.TIMEOUT_ESPERA * 1.5)
 
             # Scroll para o print (caso necessário)
             self.driver.execute_script(
@@ -158,7 +156,7 @@ class UrbanoAuto(BotBase):
                 primeiro_projeto = linhas[0].find_element(By.TAG_NAME, "a")
                 self._click(primeiro_projeto)
                 logger.info("Clicado no primeiro projeto da lista")
-                time.sleep(20)
+                time.sleep(settings.TIMEOUT_ESPERA * 2)
 
             except NoSuchElementException:
                 logger.info("Projetos não encontrados na pesquisa")
@@ -181,13 +179,12 @@ class UrbanoAuto(BotBase):
             if certidao:
                 certidao[0].click()
                 logger.info("Certidão de baixa baixada (clique realizado)")
-                time.sleep(10)
+                time.sleep(settings.TIMEOUT_ESPERA)
                 dados_projeto = self._capturar_dados_projeto(
                     nome_arquivo="Certidão de Baixa"
                 )
                 return qtd_projetos, dados_projeto
 
-            # Tenta baixar alvará
             alvara = self.driver.find_elements(
                 By.XPATH,
                 "//a[contains(text(),'visualizar') and @ng-click='statusCtrl.abrirAlvara()']",
@@ -195,7 +192,7 @@ class UrbanoAuto(BotBase):
             if alvara:
                 alvara[0].click()
                 logger.info("Alvará baixado (clique realizado)")
-                time.sleep(10)
+                time.sleep(settings.TIMEOUT_ESPERA)
                 dados_projeto = self._capturar_dados_projeto(
                     nome_arquivo="Alvará de Contrução"
                 )
@@ -203,7 +200,7 @@ class UrbanoAuto(BotBase):
 
             # Se nenhum documento encontrado, salva print e acessa "Documentos Anexos"
             if not certidao and not alvara:
-                time.sleep(10)
+                time.sleep(settings.TIMEOUT_ESPERA)
                 screenshot_sem_doc = os.path.join(
                     self.pasta_download, "Sem Alvara-Baixa.png"
                 )
@@ -229,7 +226,7 @@ class UrbanoAuto(BotBase):
 
                 # Aguarda aparecer o painel "Pranchas do Projeto"
                 try:
-                    time.sleep(15)
+                    time.sleep(settings.TIMEOUT_ESPERA * 1.5)
                     self.wait.until(
                         EC.presence_of_element_located(
                             (By.XPATH, "//h3[contains(text(),'Pranchas do Projeto')]")
@@ -268,7 +265,7 @@ class UrbanoAuto(BotBase):
                         )
 
                     logger.info("Download iniciado para: %s", nome_arquivo)
-                    time.sleep(10)
+                    time.sleep(settings.TIMEOUT_ESPERA)
 
                     dados_projeto = self._capturar_dados_projeto(nome_arquivo="Projeto")
                     return qtd_projetos, dados_projeto

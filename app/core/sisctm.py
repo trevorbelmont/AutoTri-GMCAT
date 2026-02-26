@@ -13,43 +13,40 @@ from selenium.common.exceptions import (
     ElementClickInterceptedException,
 )
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase
 
 
 class SisctmAuto(BotBase):
     """
-    Classe para automatizar tarefas relacionadas ao SISCTM via Selenium.
-
-    ... (Docstring omitido por brevidade) ...
-    """
+    Classe para automatizar tarefas relacionadas ao SISCTM via Selenium."""
 
     def __init__(
         self,
-        driver,
+        driver: WebDriver,
         url: str,
         usuario: str,
         senha: str,
         pasta_download: str,
-        timeout: int = 10,          # timeout é definido com valor padrão (se não definido na instanciação do objeto)
-        checar_popup: bool = True,  # checar_popup também possui valor padrão (se não definido na instanciação)
+        timeout: float = 10.0,
+        checar_popup: bool = True,
     ):
-        
-        super().__init__(driver, timeout)
+
+        super().__init__(driver, settings.TIMEOUT_ESPERA)
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
-        self.checar_popup = checar_popup 
-    
-    
+        self.checar_popup = checar_popup
+
     def login(self) -> bool:
         """Realiza login no Keycloak PBH em páginas Vue.js."""
-        
+
         try:
             logger.info("Iniciando login no SISCTM")
             self.driver.get(self.url)
@@ -70,7 +67,6 @@ class SisctmAuto(BotBase):
             )
             logger.info("Campo de usuário preenchido via JS")
 
-            
             campo_senha = self.driver.find_element(By.ID, "password")
             # Preenche senha via JS
             self.driver.execute_script(
@@ -80,96 +76,65 @@ class SisctmAuto(BotBase):
             )
             logger.info("Campo de senha preenchido via JS")
 
-            # Clica no botão via JS
             btn_login = self.driver.find_element(By.ID, "kc-login")
             self.driver.execute_script("arguments[0].click();", btn_login)
             logger.info("Login realizado com sucesso")
 
-            time.sleep(10)  # NOTE: o site tem animação e demora pra terminar de carregar,
-                            # mas ter uma forma mais rápida que um sleep de 10 sec fixo pode ser bom (não sei se tem)
+            time.sleep(settings.TIMEOUT_ESPERA)
 
-            # -----------------------------------------------------------
-            # NOTE: Bloco de tratamento da Pop-up "Notas de Versão" - Estratégia "Fail Fast"
-            # Se checar_popup estiver true, checa se a pop-up apareceu enquanto a página carregava.
-            # Timeout curto (3s) para não atrasar execuções.
-            # -----------------------------------------------------------
-
-        
-            '''NOTE: Após o login pode ocorrer problema do pop-up "Notas de Versão". 
-            É algo fácil de resolver manualmente, mas vamos automatizar (visto que alguns usuários não souberam resolver por si só.)
-                       
-            !!! A ROTINA ABAIXO SÓ ACONTECE SE A VARIÁVEL  'checar_popup' (que possui valor default) estiver definida no construtor !!!
-            
-            -  Essa rotina acontece depois do time.sleep() acima de 10 segs. O pop-up certamente já apareceu 
-            (geralmente é a primeira coisa a ser carregada).
-            - Aí procuramos o pop-up e fechamos, e se não apareceu, seguimos.      
-            
-            TODO: Garantir que, se a checagem de popup estiver true na triagem do primeiro protocolo, ela auto-desliga nas próximas triagens.
-            Isso elimina a perda de eficiência de 3 segundos caso o pop-up já tenha sido retirado na triagem anterior.
-            (Protocolos são geralmente triados em séries numa única execução do AutoTri).
-            '''
-            
             if self.checar_popup:
                 try:
-
-                    # 1. Procura pelo Checkbox específico da pop-up (via aria-label, que é estável)
-                    # Define um timeout máximo de 3 segundos pra visibilidade do "Mostrar Novamente" checkbox no pop-up
-                    # NOTE: isso é mais uma dupla segurança - uma vez que já rolou 10 segs de sleep ao fim do login.
-                    checkbox_popup = WebDriverWait(self.driver, 3).until(   
-                        EC.visibility_of_element_located((
-                            By.XPATH, 
-                            "//div[@role='checkbox' and @aria-label='Não mostrar novamente']"
-                        ))
+                    checkbox_popup = WebDriverWait(self.driver, 3).until(
+                        EC.visibility_of_element_located(
+                            (
+                                By.XPATH,
+                                "//div[@role='checkbox' and @aria-label='Não mostrar novamente']",
+                            )
+                        )
                     )
-                    logger.info("Pop-up 'Notas da Versão' detectada. Iniciando tratamento...")
-                    
-                    # 2. Marcar "Não mostrar novamente" (se ainda não estiver marcado)
+                    logger.info(
+                        "Pop-up 'Notas da Versão' detectada. Iniciando tratamento..."
+                    )
+
+                    # Marca "Não mostrar novamente" (se ainda não estiver marcado)
                     is_checked = checkbox_popup.get_attribute("aria-checked")
                     if is_checked == "false":
                         self._click(checkbox_popup)
                         logger.info("Opção 'Não mostrar novamente' marcada.")
-                        time.sleep(0.5) # Breve respiro para a animação do check
-                    
-                    # 3. Fechar a Pop-up - Busca o ícone 'close' visível.
+                        time.sleep(0.5)
+
+                    # Fechar a Pop-up - Busca o ícone 'close' visível.
                     btn_fechar = self.driver.find_element(
-                        By.XPATH, 
-                        "//i[contains(@class, 'material-icons') and text()='close']"
+                        By.XPATH,
+                        "//i[contains(@class, 'material-icons') and text()='close']",
                     )
                     self._click(btn_fechar)
-                                        
+
                     # Espera a pop-up sumir visualmente para não bloquear o próximo clique
                     WebDriverWait(self.driver, 2).until(
-                        EC.invisibility_of_element(checkbox_popup) #espera o elemento ficar "invisível" (não existe ou não está visível)
+                        EC.invisibility_of_element(checkbox_popup)
                     )
                     logger.info("Pop-up fechada com sucesso.")
-                   
+
                 except TimeoutException:
-                    # Se no time sleep de 3 segs não apareceu nada, assumimos que o caminho está livre
                     logger.debug("Caminho livre: Nenhuma pop-up detectada (Fail Fast).")
                 except Exception as e:
-                    # Se der outro erro, logamos mas não paramos o fluxo (pode ser falso positivo)
                     logger.warning(f"Aviso ao tentar tratar pop-up: {e}")
-            # -----------------------------------------------------------
             return True
 
         except Exception as e:
             logger.error("Erro no login do Keycloak PBH: %s", e)
             return False
 
-    def ativar_camadas(self, indice_cadastral: str) -> bool: 
+    def ativar_camadas(self, indice_cadastral: str) -> bool:
         """
-        Navega pelo menu do sistema, ativa camadas específicas (Endereço, Lote CP) 
-        e aplica o filtro pelo Índice Cadastral.
+        Navega pelo menu do sistema, ativa camadas específicas (Endereço, Lote CP)
+        e aplica o filtro pelo Índice Cadastral."""
 
-        :param indice_cadastral: O índice do imóvel para busca e filtro.
-        :return: True se todas as camadas foram ativadas e o filtro aplicado com sucesso, False caso contrário.
-        """
-                
         etapa = "início"
         try:
             logger.info("Iniciando navegação pelo sistema SISCTM PBH")
 
-            # Expande o menu
             etapa = "expandir menu"
             logger.debug("Tentando localizar botão de menu (expand_more)...")
             btn_menu = self.wait.until(
@@ -183,7 +148,7 @@ class SisctmAuto(BotBase):
             self._click(btn_menu)
             logger.info("Menu expandido com sucesso")
             time.sleep(1)
-            
+
             # Clica no item Fazenda
             etapa = "selecionar Fazenda"
             logger.debug("Localizando item 'Fazenda'...")
@@ -409,14 +374,14 @@ class SisctmAuto(BotBase):
             )
             return False
 
-    def _prints_aereo(self) -> None: 
+    def _prints_aereo(self) -> None:
         """
         Realiza a captura de tela do mapa em duas visualizações: Vetorial e Ortofoto.
         Salva os arquivos 'CTM_Aereo.png' e 'CTM_Orto.png' na pasta de download definida.
-        
+
         :return: None.
         """
-        
+
         # Print AEREO CTM
         time.sleep(15)
         screenshot_path = os.path.join(self.pasta_download, "CTM_Aereo.png")
@@ -447,7 +412,7 @@ class SisctmAuto(BotBase):
         )
         self._click(elemento_ortofoto)
         logger.info("Ortofoto selecionada")
-        time.sleep(10)
+        time.sleep(settings.TIMEOUT_ESPERA)
 
         # Print AEREO ORTO
         screenshot_path_orto = os.path.join(self.pasta_download, "CTM_Orto.png")
@@ -485,46 +450,11 @@ class SisctmAuto(BotBase):
 
     def capturar_areas(self) -> Dict[str, Optional[str]]:
         """
-        Captura dados tabulares exibidos no painel lateral de Informações apósa seleção de um lote no mapa.
-        A rotina garante previamente o foco no painel de Informações e realiza extrações independentes por bloco funcional, 
-        permitindo falhas parciais sem comprometer a execução completa.
-
-    Blocos processados de forma independente:
-      - IPTU CTM GEO (áreas e dados cadastrais);
-      - Endereço formatado a partir dos campos disponíveis;
-      - Lote CP - ATIVO (área informada).
-        
-        :return: Dicionário contendo os dados extraídos (ou None, em caso de falha total):
-                 - 'iptu_ctm_geo_area': Área do IPTU.
-                 - 'iptu_ctm_geo_area_terreno': Área do terreno.
-                 - 'endereco_ctmgeo': Endereço formatado completo.
-                 - 'lote_cp_ativo_area_informada': Área informada do loteamento.
-                 Retorna dicionário vazio em caso de erro crítico - Não encontrar o Painel Lateral.
+        Captura dados tabulares exibidos no painel lateral de Informações após a seleção de um lote no mapa.
         """
-        resultado: Dict[str, Optional[str]] = {} # Dicionário que será retornado
+        resultado: Dict[str, Optional[str]] = {}
 
         logger.info("Garantindo foco no painel de informações...")
-        # Interage (encontra e clica) com o seletor da aba Informações - Isso garante o foco e visibilidade da tabela
-        # Importante para triagem via IC e robustez geral.
-        print(self._interact(nome_log="Aba Informações (sidebar)", #HACK: Tirar este rpint de DEBUG
-            xpath=[
-                # 1) Mais forte
-                "//div[contains(@class,'q-item--clickable')]"
-                "//i[contains(@class,'mdi-map-marker-question-outline')]"
-                "/ancestor::div[contains(@class,'q-item')]",
-
-                # 2) Ícone + subida
-                "//i[contains(@class,'mdi-map-marker-question-outline')]"
-                "/ancestor::div[contains(@class,'q-item')]",
-
-                # 3) Role + classe funcional
-                "//div[@role='listitem' and contains(@class,'q-item--clickable')]",
-            ],
-            css=[
-                # 4) Fallback CSS
-                "div.q-item--clickable i.mdi-map-marker-question-outline"
-            ]
-        ))
 
         # O seletor da interface atualizada (resolve o problema de captura de áreas falhando)
         PAINEL_SELETOR = "#q-app > div > div.q-drawer-container > aside > div > div.fit.row.no-scroll > div.col.bg-white > div > div.col.relative-position > div"
@@ -534,11 +464,13 @@ class SisctmAuto(BotBase):
                 EC.presence_of_element_located((By.CSS_SELECTOR, PAINEL_SELETOR))
             )
         except TimeoutException:
-            logger.warning("ALERTA CRÍTICO: Painel lateral de Informações não encontrado após clique. Retornando vazio na ETAPA SISCTM.")
-            return {} # Sai graciosamente sem quebrar o resto do código
-                                   
+            logger.warning(
+                "ALERTA CRÍTICO: Painel lateral de Informações não encontrado após clique. Retornando vazio na ETAPA SISCTM."
+            )
+            return {}
+
         # Função auxiliar para ativar item
-        def ativar_item(nome_item: str) -> Optional[object]:  # str -> Optional[object]
+        def ativar_item(nome_item: str) -> Optional[object]:
             try:
                 item = painel.find_element(
                     By.XPATH,
@@ -548,7 +480,7 @@ class SisctmAuto(BotBase):
                 aria = botao.get_attribute("aria-expanded")
                 if aria != "true":
                     logger.info(f"{nome_item} não está ativo. Ativando...")
-                    botao.click()   # XXX: TODO: migra para utilizar o _click() definido na classe - mais robusto 
+                    self._click(botao)
                     WebDriverWait(botao, 5).until(
                         lambda x: x.get_attribute("aria-expanded") == "true"
                     )
@@ -561,14 +493,14 @@ class SisctmAuto(BotBase):
                 logger.info(
                     f"Erro ao ativar item {nome_item}: Camada {nome_item} não encontrada."
                 )
-                return None # Garante que a função aninhada sempre retorne algo (None se falhar)
+                return None
 
         # ----------------------------------------------------------------------
         # BLOCO INDEPENDENTE:  IPTU CTM GEO (Processamento granular)
         # ----------------------------------------------------------------------
         iptu_item = ativar_item("IPTU CTM GEO")
-        
-        if iptu_item: 
+
+        if iptu_item:
             # 1.1 Captura Área Construída
             try:
                 linha_area = WebDriverWait(iptu_item, 5).until(
@@ -587,7 +519,10 @@ class SisctmAuto(BotBase):
             try:
                 linha_area_terreno = WebDriverWait(iptu_item, 5).until(
                     EC.presence_of_element_located(
-                        (By.XPATH, ".//table//tr[td[contains(text(),'AREA_TERRENO')]]/td[2]")
+                        (
+                            By.XPATH,
+                            ".//table//tr[td[contains(text(),'AREA_TERRENO')]]/td[2]",
+                        )
                     )
                 )
                 valor = linha_area_terreno.text.strip()
@@ -607,7 +542,7 @@ class SisctmAuto(BotBase):
                     "cep": ".//table//tr[28]/td[2]",
                 }
 
-                valores: Dict[str, str] = {} 
+                valores: Dict[str, str] = {}
                 for chave, xpath in campos.items():
                     try:
                         elemento = WebDriverWait(iptu_item, 2).until(
@@ -617,7 +552,6 @@ class SisctmAuto(BotBase):
                     except TimeoutException:
                         valores[chave] = ""
 
-                # Tratamento: Remove pontos do número do imóvel
                 valores["numero_imovel"] = valores["numero_imovel"].replace(".", "")
 
                 # Monta o endereço no formato desejado
@@ -633,39 +567,46 @@ class SisctmAuto(BotBase):
                 logger.warning(f"Não foi possível capturar endereço CTM GEO: {e}")
                 resultado["endereco_ctmgeo"] = None
         else:
-            logger.warning("IPTU CTM GEO não foi encontrado/ativado! Pulando captura de dados do grupo (IPTU).")
-
+            logger.warning(
+                "IPTU CTM GEO não foi encontrado/ativado! Pulando captura de dados do grupo (IPTU)."
+            )
 
         # ----------------------------------------------------------------------
         # BLOCO INDEPENDENTE: Lote CP - ATIVO (Processamento independente)
         # ----------------------------------------------------------------------
         lote_cp_item = ativar_item("Lote CP - ATIVO")
 
-        if lote_cp_item: 
+        if lote_cp_item:
             try:
                 # Captura a tabela e todas as linhas
                 tabela = lote_cp_item.find_element(By.TAG_NAME, "table")
-                linhas: List[object] = tabela.find_elements(By.TAG_NAME, "tr") 
-                
+                linhas: List[object] = tabela.find_elements(By.TAG_NAME, "tr")
+
                 # Validação: Captura a sexta linha (índice 5) onde deve estar a área
                 if len(linhas) >= 6:
                     linha_area = linhas[5]
-                    colunas: List[object] = linha_area.find_elements(By.TAG_NAME, "td") 
+                    colunas: List[object] = linha_area.find_elements(By.TAG_NAME, "td")
                     if len(colunas) >= 2:
-                        valor: str = colunas[1].text.strip() 
+                        valor: str = colunas[1].text.strip()
                         resultado["lote_cp_ativo_area_informada"] = valor
                         logger.info(f"[SUCESSO] Área Lote CP: {valor}")
                     else:
-                         logger.warning("Não foi possível encontrar a coluna de valor na linha de área.")
-                         resultado["lote_cp_ativo_area_informada"] = None
+                        logger.warning(
+                            "Não foi possível encontrar a coluna de valor na linha de área."
+                        )
+                        resultado["lote_cp_ativo_area_informada"] = None
                 else:
-                    logger.warning("Tabela Lote CP - ATIVO não possui linhas suficientes.")
+                    logger.warning(
+                        "Tabela Lote CP - ATIVO não possui linhas suficientes."
+                    )
                     resultado["lote_cp_ativo_area_informada"] = None
-                    
+
             except Exception as e:
                 logger.warning(f"Não foi possível capturar área Lote CP - ATIVO: {e}")
                 resultado["lote_cp_ativo_area_informada"] = None
         else:
-            logger.warning("Lote CP - ATIVO não foi encontrado/ativado, pulando captura de área.")
+            logger.warning(
+                "Lote CP - ATIVO não foi encontrado/ativado, pulando captura de área."
+            )
 
         return resultado

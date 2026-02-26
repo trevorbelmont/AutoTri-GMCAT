@@ -1,14 +1,16 @@
+import logging
 import os
 import shutil
 from datetime import datetime
 from pipeline import processar_indice, processar_protocolo
-from utils import logger, log_path, section_log, reset_log_file
+from utils import logger, log_path, section_log, reset_log_file, lot_logger_config
+from utils import settings, CredentialManager
 from utils import abrir_pasta, criar_pasta_resultados
 from gui import iniciar_interface
 
-
 def main():
 
+    
     # função aninhada principal do orquestrador (definida dentro da main)
     def processar(credenciais, protocolos, ics_avulsos, cancelar_event, atualizar_progresso_gui, atualizar_status_gui, iniciar_timer ):
 
@@ -17,8 +19,10 @@ def main():
         # Cria pasta_resultados - neste método o momento 'agora' das Time Stamps são definidos
         # NOTE: a Time Stamp da pasta resultados será propagada para o início do Logger e demais coisas.
         pasta_resultados = criar_pasta_resultados()
+        lot_logger_config(pasta_resultados,settings.LOT_DEBUGGER)     # Ativa o log de erros se "--lot-logger" foi passado por argumento.
         
-        
+        lvl = logging.WARNING if settings.LOT_DEBUGGER else logging.INFO
+
         # Extrai o nome da pasta para usar no cabeçalho
         # Ex: "Resultados - 08 de janeiro de 2026 14h25"
         nome_pasta = os.path.basename(pasta_resultados)
@@ -29,7 +33,11 @@ def main():
         # Escreve o cabeçalho do LOG unificiado (arquivo e GUI)
         # TODO: Modificar os separadores hardcoded para usar a função section_log() definida em logger.py
         #logger.info(f"======= Triagem iniciada em {timestamp_legivel} =======")
+
+        logger.debug("\n\n")
         section_log(f" Triagem iniciada em {timestamp_legivel} ",'=',60)
+        logger.info(f"v. {root.title()}")
+        
         
         # --- Formata a lista  de PROTOCOLOS para ficar mais legível [sem colchetes nem áspas simples] -----
         # Quebra a lista em pedaços (chunks) de 3 itens
@@ -46,8 +54,7 @@ def main():
             lista_formatada = "\n ".join([f"\t\t{', '.join(chunk)}" for chunk in chunks])
             logger.info(f"ICs (avulsos) identificados para trigem    ({len(ics_avulsos)}):\n{lista_formatada}")
         
-        #logger.info("==========================================================\n\n")
-        section_log("",'=',60)
+        section_log("",'=',60, addEndLines=2)
         count_protocol = 0
         count_IC = 0
         inicio_exec = datetime.now()
@@ -56,7 +63,7 @@ def main():
         # CÁLCULO SIMPLES DE TEMPO ESTIMADO
         # ==========================================================
         MEDIA_PROTOCOLO = 295 # 4 min 45 seg = 285 segundos
-        MEDIA_IC_AVULSO = 260 # 4 min 20 seg = 260 segundos
+        MEDIA_IC_AVULSO = 260 # 4 min 10 seg = 260 segundos
         
         qtd_prot = len(protocolos)
         qtd_avulsos = len(ics_avulsos) if ics_avulsos else 0
@@ -140,9 +147,9 @@ def main():
                 
                 # Atualiza StatusText e Loga o bloco formatado do início do processamento de um novo protocolo
                 atualizar_status_gui(msg_status)
-                logger.info(separador)
-                logger.info(titulo_log.center( len(separador) )) # .center() centraliza o texto na linha (de acordo com o tamanho separador)
-                logger.info(separador + "\n")
+                logger.log(lvl,f"{separador}")
+                logger.log(lvl, f"{titulo_log.center( len(separador) )}") # .center() centraliza o texto na linha (de acordo com o tamanho separador)
+                logger.log(lvl, f"{separador}" + "\n")
                 # ---------------------------------
 
                 if cancelar_event.is_set():
@@ -214,7 +221,7 @@ def main():
                             logger.error(f"Erro no índice {indice}: {e}")
                         
                 # Se não achou índices pra processar no Sigede
-                elif not indices_para_processar:
+                elif not indices_para_processar: # XXX: Checar se está rodando direito (protocolos sem ICs executando)
                     progressBarDict["atual"] += progressBarDict["peso_tarefa"]*0.9  #Adiciona o resto da porcentagem daquela etapa
 
 
@@ -259,7 +266,15 @@ def main():
             root.after(0, resetar_interface) # A main está resetando a interface (não interface.py)
             # Reseta a interface DEPOIS de mover o log pra past de Resultados
 
-    root, resetar_interface, _, iniciar_timer = iniciar_interface(processar)
+    # Lê os argumentos do atalho/terminal e configura as variáveis globais
+    settings.setup()
+    # Configura dentro da Context seguro do CredManager deleta neste módulo e limpa no glgobal ao sair do with.
+    with CredentialManager.session_manager() as creds_iniciais:
+        
+        # Passamos as credenciais vivas para a interface preencher os campos
+        root, resetar_interface, _, iniciar_timer = iniciar_interface(processar, creds_iniciais)
+        del creds_iniciais      # XXX: este del é meramente um excesso de segurança - desnecessário. 
+
     root.mainloop()
 
 

@@ -23,7 +23,7 @@ from reportlab.lib.enums import TA_CENTER
 from reportlab.lib import colors
 from datetime import datetime
 
-# Função que gera o relatório do Índice Cadastral (associado a protocolos VIRTUAL ou REAL)
+
 def gerar_relatorio(
     indice_cadastral,
     anexos_count=None,
@@ -35,7 +35,7 @@ def gerar_relatorio(
     dados_projeto=None,
     dados_sisctm=None,
     protocolo=None,
-    ic_avulso = False,
+    ic_avulso=False,
 ):
     """
     Gera um relatório PDF do Índice Cadastral com base nos dados fornecidos.
@@ -75,7 +75,6 @@ def gerar_relatorio(
             for chave in chaves:
                 valor = dados_dict.get(chave)
 
-                # Garante que None ou string vazia vire "Não informado"
                 if valor is None or valor == "":
                     valor = "Não informado"
 
@@ -189,7 +188,8 @@ def gerar_relatorio(
             elementos.append(Spacer(1, 12))
 
     # Prepara anexos (com renomeação no disco para nomes seguros)
-    anexos_planta, anexos_siatu, anexos_projetos, anexos_sisctm, anexos_google = (
+    anexos_planta, anexos_siatu, anexos_projetos, anexos_sisctm, anexos_google, anexos_kml = (
+        [],
         [],
         [],
         [],
@@ -234,6 +234,8 @@ def gerar_relatorio(
                 anexos_projetos.append(arq)
             elif "CTM" in arq:
                 anexos_sisctm.append(arq)
+            elif arq.lower().endswith(".kml") or "poligono" in arq.lower():
+                anexos_kml.append(arq)
             elif "google" in arq:
                 anexos_google.append(arq)
             else:
@@ -241,28 +243,24 @@ def gerar_relatorio(
 
     logger.info("Criando relatório PDF")
 
-    # Seções
     # 1. SIGEDE / ORIGEM DA DEMANDA
     logger.info("Adicionando seção 1: SIGEDE/Origem do IC")
 
-    # ---- Chea se é triagem por IC (ic_avulso) ---
     if ic_avulso:
-        # CASO AVULSO: Apenas informa a origem, sem buscar arquivos
         adicionar_secao(
             "1. Triagem por Índice Cadastral",
             "Triagem realizada diretamente por lista de Índices Cadastrais (Avulsos). "
-            "Não há Protocolo SIGEDE ou Certidão de Inteiro Teor acessível para o Índice."
+            "Não há Protocolo SIGEDE ou Certidão de Inteiro Teor acessível para o Índice.",
         )
-    
+
     else:
-        # CASO PROTOCOLO REAL: Lógica original de busca de arquivos
         texto_prot = protocolo if protocolo else "N/A"
         adicionar_secao(
-            "1. SIGEDE - Busca por Protocolo e ICs vinculados" ,
+            "1. SIGEDE - Busca por Protocolo e ICs vinculados",
             "A presente seção será igual para todos os ICs vínculados ao mesmo protocolo.",
         )
 
-        # Busca arquivos .pdf e .png um nível acima (pasta protocolo)
+        # Busca arquivos .pdf e .png um nível acima (pasta do protocolo)
         arquivos_sigede = []
         if pasta_anexos and os.path.exists(pasta_anexos):
             pasta_pai = os.path.dirname(pasta_anexos)
@@ -303,10 +301,7 @@ def gerar_relatorio(
                 Paragraph("Nenhum registro encontrado no SIGEDE.", style_normal)
             )
             elementos.append(Spacer(1, 12))
-    
-    # --- FIM DA LÓGICA CONDICIONAL DA SEÇÃO 1 ---
 
-    # 2. Planta Básica - Exercício Seguinte e/ou Recalculado e/ou Primeiro do Ano
     logger.info("Adicionando seção 2: Planta Básica")
     if dados_planta and dados_planta["area_construida"] != "Não informado":
         chaves_pb = ["area_construida", "exercicio", "patrimonio", "endereco_imovel"]
@@ -329,7 +324,6 @@ def gerar_relatorio(
             "Planta Básica não encontrada.",
         )
 
-    # 3. Croqui e Anexos Siatu
     logger.info("Adicionando seção 3: Anexos SIATU")
     if anexos_siatu:
         gerar_tabela_secao(
@@ -342,8 +336,20 @@ def gerar_relatorio(
             "Nenhum anexo encontrado.",
         )
 
-    # 4. SISCTM
     logger.info("Adicionando seção 4: Dados SISCTM")
+
+    anexos_sessao_4 = anexos_sisctm.copy()
+
+    if anexos_kml:
+        # Se houver KML, adicionamos à lista de anexos do SISCTM
+        anexos_sessao_4.extend(anexos_kml)
+        nota_kml = (
+            "<br/><br/><b>Nota:</b> Clique no arquivo .kml acima para visualizar " 
+            "o polígono no Google Earth instalado ou carregue-o no Google Earth Web."
+        )
+    else:
+        nota_kml = ""
+
     if dados_sisctm:
         nomes_legiveis = {
             "iptu_ctm_geo_area_terreno": "Área de Terreno (SIATU)",
@@ -358,15 +364,19 @@ def gerar_relatorio(
             "endereco_ctmgeo",
         ]
         gerar_tabela_secao(
-            "4. Dados SISCTM", dados_sisctm, chaves, nomes_legiveis, anexos_sisctm
+            "4. Dados SISCTM", dados_sisctm, chaves, nomes_legiveis, anexos_sessao_4
         )
+        if nota_kml:
+            elementos.insert(-1, Paragraph(nota_kml, style_normal))
+            elementos.insert(-1, Spacer(1, 12))
     else:
         gerar_tabela_secao(
             "4. Dados SISCTM - IC NÃO ENCONTRADO ou LOTE NÃO CENTRALIZADO",
             anexos=anexos_sisctm,
         )
+        if nota_kml:
+            elementos.insert(-1, Paragraph(nota_kml, style_normal))
 
-    # 5. Google Maps
     logger.info("Adicionando seção 5: Google Maps")
     if anexos_google:
         gerar_tabela_secao(
@@ -379,7 +389,6 @@ def gerar_relatorio(
             "Endereço não encontrado.",
         )
 
-    # 6. Projeto, Alvará e Baixa de Construção
     logger.info("Adicionando seção 6: Projeto, Alvará e Baixa de Construção")
     if dados_projeto:
         chaves_projeto = [
@@ -414,7 +423,6 @@ def gerar_relatorio(
             "Nenhum dado encontrado.",
         )
 
-    # 7. Matrícula do Imóvel
     logger.info("Adicionando seção 7: Matrícula do Imóvel")
 
     if isinstance(dados_planta, dict) and (
@@ -432,11 +440,9 @@ def gerar_relatorio(
     else:
         adicionar_secao("7. Matrícula do Imóvel", "Nenhum dado encontrado.")
 
-    # 8. Conclusão Parcial - Endereço + Áreas
     logger.info("Adicionando seção 8: Conclusão Parcial")
     adicionar_secao("8. Conclusão Parcial - Endereços e Áreas")
 
-    # Compara endereços - SIATU vs IPTU CTMGEO
     endereco_siatu = dados_planta.get("endereco_imovel", "") if dados_planta else ""
     endereco_ctm = dados_sisctm.get("endereco_ctmgeo", "") if dados_sisctm else ""
 
@@ -493,7 +499,6 @@ def gerar_relatorio(
     a_urb = parse_area(dados_projeto.get("area_construida") if dados_projeto else None)
 
     if a_pb is not None or a_urb is not None:
-        # Formata valores
         area_pb = formatar_area(a_pb)
         area_urbano = formatar_area(a_urb)
 
@@ -520,9 +525,8 @@ def gerar_relatorio(
         elementos.append(tabela_area)
         elementos.append(Spacer(1, 12))
 
-    # Não cria tabelas se não há dados
     if (not a_pb and not a_urb) and (not endereco_siatu or not endereco_ctm):
         adicionar_secao(texto_secao="Não há dados para análise.")
 
-    # Gera o PDF
+    # Gera o PDFS
     doc.build(elementos)

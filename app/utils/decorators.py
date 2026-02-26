@@ -3,7 +3,7 @@ from functools import wraps
 from .logger import logger
 
 
-def retry(max_retries=3, delay=5, exceptions=(Exception,)):
+def retry(max_retries=None, delay=None, exceptions=(Exception,)):
     """
     Decorador para repetir a execução de uma função em caso de erro.
     Nesse contexto, não é necessário refresh do Selenium, porque
@@ -11,14 +11,19 @@ def retry(max_retries=3, delay=5, exceptions=(Exception,)):
 
     Args:
         max_retries (int): número máximo de tentativas.
-        delay (int): tempo (segundos) para esperar entre tentativas.
+        delay (float): tempo (segundos) para esperar entre tentativas.
         exceptions (tuple): exceções que devem disparar retry.
     """
 
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            for attempt in range(1, max_retries + 1):
+            from utils import settings
+
+            v_max_retries = max_retries if max_retries is not None else settings.RETRY_MAX
+            v_delay = delay if delay is not None else settings.RETRY_DELAY 
+
+            for attempt in range(1, v_max_retries + 1):
                 try:
                     return func(*args, **kwargs)
                 except exceptions as e:
@@ -26,19 +31,19 @@ def retry(max_retries=3, delay=5, exceptions=(Exception,)):
                         "Erro na execução de %s (tentativa %d/%d): %s",
                         func.__name__,
                         attempt,
-                        max_retries,
+                        v_max_retries,
                         e,
                     )
-                    if attempt < max_retries:
+                    if attempt < v_max_retries:
                         logger.info(
-                            f"Aguardando {delay}s antes da próxima tentativa..."
+                            f"Aguardando {v_delay}s antes da próxima tentativa..."
                         )
-                        time.sleep(delay)
+                        time.sleep(v_delay)
                     else:
                         logger.error(
                             "Falha definitiva em %s após %d tentativas",
                             func.__name__,
-                            max_retries,
+                            v_max_retries,
                         )
                         raise
 

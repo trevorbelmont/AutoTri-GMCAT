@@ -2,40 +2,34 @@ import os
 import time
 import re
 
-from utils import logger
+from utils import logger, settings
 from .base import BotBase
 
 from selenium.webdriver.common.by import By
+from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from selenium.webdriver.remote.remote_connection import RemoteConnection
+from typing import Dict
 
 
 class SiatuAuto(BotBase):
     """
     Classe para automatizar tarefas relacionadas ao SIATU via Selenium.
-
-    Parâmetros:
-        driver (selenium.webdriver): Instância do WebDriver para controle do navegador.
-        url (str): URL de login ou página inicial do SIATU.
-        usuario (str): Nome de usuário para autenticação no sistema.
-        senha (str): Senha do usuário para autenticação.
-        pasta_download (str): Caminho da pasta onde os arquivos baixados serão armazenados.
     """
 
-    def __init__(self, driver, url, usuario, senha, pasta_download):
-       
-        super().__init__(driver,timeout = 5)
+    def __init__(
+        self, driver: WebDriver, url: str, usuario: str, senha: str, pasta_download: str
+    ):
+
+        super().__init__(driver, settings.TIMEOUT_ESPERA / 2)
         self.url = url
         self.usuario = usuario
         self.senha = senha
         self.pasta_download = pasta_download
 
-    def acessar(self):
-        """
-        Aceessa a página inicial do sistema Siatu.
-        """
+    def acessar(self) -> bool:
         try:
             logger.info("Acessando o Sistema 1: SIATU")
             self.driver.get(self.url)
@@ -44,9 +38,8 @@ class SiatuAuto(BotBase):
             logger.error("Erro ao acessar o sistema: %s", e)
             raise
 
-    def login(self):
-        """
-        Realiza o login no sistema Siatu."""
+    def login(self) -> bool:
+
         try:
             logger.info("Preenchendo usuário e senha")
             self.wait.until(
@@ -62,7 +55,7 @@ class SiatuAuto(BotBase):
             logger.error("Erro no login: %s", e)
             raise
 
-    def navegar(self):
+    def navegar(self) -> bool:
         """
         Inicia a navegação até a página de consulta de índice cadastral.
         """
@@ -97,9 +90,9 @@ class SiatuAuto(BotBase):
                 raise
             return False
 
-    def planta_basica(self, indice_cadastral: str):
+    def planta_basica(self, indice_cadastral: str) -> Dict[str, str]:
         """
-        Consulta índice e obtem a planta básica resumida (PDF).
+        Consulta índice e obtem a planta básica resumida (PDF). Retorna dicionário com dados.
         """
 
         try:
@@ -118,8 +111,7 @@ class SiatuAuto(BotBase):
                 EC.presence_of_element_located((By.ID, "exercicio"))
             )
 
-            # XXX: Diminui timeout devido ao travamento do SIATU em algumas ocasiões
-            RemoteConnection.set_timeout(10)
+            RemoteConnection.set_timeout(settings.TIMEOUT_ESPERA)
 
             self._click(campo_exercicio)
             logger.info("Exercício clicado")
@@ -144,9 +136,9 @@ class SiatuAuto(BotBase):
 
             dados_PB = self._capturar_dados_imovel()
 
+            # Tenta fazer o download ddos links que podem existir
             for nome, xpath in links_xpaths.items():
                 try:
-                    # Tenta localizar o link
                     link = self.wait.until(
                         EC.presence_of_element_located((By.XPATH, xpath))
                     )
@@ -154,7 +146,6 @@ class SiatuAuto(BotBase):
                     logger.info(f"Link '{nome}' clicado")
                     time.sleep(2)
 
-                    # Após clicar no link, dispara o download
                     link_planta_resumida = self.wait.until(
                         EC.element_to_be_clickable(
                             (
@@ -181,7 +172,7 @@ class SiatuAuto(BotBase):
 
                 except TimeoutException:
                     logger.info(f"Link '{nome}' não encontrado, seguindo...")
-
+            
             self._print_alteracoes()
 
             return dados_PB
@@ -201,7 +192,6 @@ class SiatuAuto(BotBase):
         Faz o download dos arquivos da seção anexos (apenas PDFs) do Siatu.
         """
 
-        # REVIEW: Normaliza timeout
         RemoteConnection.set_timeout(120)
 
         try:
@@ -218,7 +208,6 @@ class SiatuAuto(BotBase):
             logger.info("Link 'Anexos' clicado")
             time.sleep(2)
 
-            # Janela principal
             janela_principal = self.driver.current_window_handle
 
             # Busca todos os PDFs na primeira tabela
@@ -255,11 +244,23 @@ class SiatuAuto(BotBase):
                 arquivo_caminho = os.path.join(self.pasta_download, nome_arquivo)
 
                 logger.info("Processando PDF %d/%d", i, len(anexos_pdf))
+
+                arquivos_anteriores = {}
+                pasta = os.path.dirname(arquivo_caminho)
+                try:
+                    arquivos_anteriores = {
+                        f: os.path.getsize(os.path.join(pasta, f))
+                        for f in os.listdir(pasta)
+                    }
+                except FileNotFoundError:
+                    arquivos_anteriores = {}
+
                 self._click(anexo)
                 logger.info("Clique realizado no PDF")
 
-                # Espera o download concluir
-                if self._esperar_download_concluir(arquivo_caminho, timeout=120):
+                if self._esperar_download_concluir(
+                    arquivo_caminho, arquivos_anteriores
+                ):
                     logger.info("Download concluído")
                 else:
                     logger.warning(
@@ -267,13 +268,12 @@ class SiatuAuto(BotBase):
                     )
 
                 time.sleep(1)
-                # Fecha janelas extras
+
                 for janela in self.driver.window_handles:
                     if janela != janela_principal:
                         self.driver.switch_to.window(janela)
                         self.driver.close()
 
-                # Retorna para a janela principal
                 self.driver.switch_to.window(janela_principal)
 
                 qtd_anexos += 1
@@ -294,7 +294,7 @@ class SiatuAuto(BotBase):
             logger.error("Erro inesperado em download_anexos: %s", e)
             raise
 
-    def _capturar_dados_imovel(self):
+    def _capturar_dados_imovel(self) -> Dict[str, str]:
         """
         Captura os dados do imóvel: Área Construída, Exercício, Patrimônio,
         Matrícula de Registro e Cartório.
@@ -304,7 +304,6 @@ class SiatuAuto(BotBase):
         logger.info("Capturando dados do imóvel na página.")
         dados = {}
 
-        # EXERCÍCIO
         try:
             exercicio_elem = self.driver.find_element(
                 By.XPATH,
@@ -389,7 +388,6 @@ class SiatuAuto(BotBase):
 
     def _print_alteracoes(self):
         try:
-            # Clica na aba do menu "Alterações"
             alteracoes_link = self.driver.find_element(
                 By.XPATH,
                 "//a[contains(@href, 'consultaPlantaBasica') and contains(text(), 'Alterações')]",
@@ -403,7 +401,6 @@ class SiatuAuto(BotBase):
             self.driver.execute_script("document.body.style.zoom='150%'")
             time.sleep(1)
 
-            # Print da tela
             screenshot_path = os.path.join(self.pasta_download, "alteracoes_siatu.png")
             self.driver.save_screenshot(screenshot_path)
             logger.info(f"Print da aba Alterações salvo.")
@@ -413,4 +410,3 @@ class SiatuAuto(BotBase):
 
         except Exception as e:
             logger.error(f"Erro ao acessar a aba Alterações: {e}")
-

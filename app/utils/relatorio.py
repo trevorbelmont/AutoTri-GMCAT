@@ -18,7 +18,7 @@ def extrair_elementos_do_endereco_para_comparacao(endereco: str):
     cep_match = re.search(r"(\d{5}-?\d{3}|\d{8})", endereco.replace(" ", ""))
     cep = cep_match.group(1) if cep_match else None
     if cep:
-        cep = cep.replace("-", "")  # normaliza removendo hífen
+        cep = cep.replace("-", "")
 
     # Extrai número do imóvel: primeiro número após vírgula
     numero_match = re.search(r",\s*(\d+)", endereco)
@@ -38,10 +38,8 @@ def limpar_area(valor):
 
     # Detecta se é formato brasileiro com vírgula decimal
     if "," in v and "." in v:
-        # '1.088,24' -> '1088.24'
         v = v.replace(".", "").replace(",", ".")
     elif "," in v:
-        # '1088,24' -> '1088.24'
         v = v.replace(",", ".")
     # se tiver apenas ponto, assume decimal internacional
     v = re.sub(r"[^\d\.]", "", v)
@@ -50,7 +48,7 @@ def limpar_area(valor):
 
 def parse_area(valor):
     """
-    Valida valor de área
+    Valida valor de área.
     """
     if not valor or str(valor).strip().lower() in ["não informado", ""]:
         return None

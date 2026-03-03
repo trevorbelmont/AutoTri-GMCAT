@@ -38,11 +38,11 @@ class Siatu(SistemaAutomacao):
     """Adapter para o sistema SIATU.
     Responsável pela orquestração da extração de dados (Planta Básica) e documentos (Anexos) de um IC.
     """
-
+    @retry(exceptions=(Exception,))
     def executar(
         self, indice: str, credenciais: Dict[str, str], pasta_indice: str
     ) -> Tuple[Dict[str, Any], int]:
-        """Executa a automação do SIATU (obter dados cadastrais e documentos) do Índice informado .
+        """Executa a automação do SIATU (obter dados cadastrais e documentos) do Índice informado. Método monitorado pelo decorador @retry.
 
         :return: Uma tupla (dados_pb, anexous_count) contendo:
         1. Dicionário com dados da Planta Básica (área, endereço, etc).
@@ -54,27 +54,21 @@ class Siatu(SistemaAutomacao):
         # Ativa a flag: --unsafely-treat-insecure-origin-as-secure durante a criação do driver_context
         add_config = True
 
-
-        @retry(exceptions=(Exception,))
-        def fluxo_siatu():
-
-            with driver_context(pasta_indice, add_config=add_config) as driver:
-                siatu = SiatuAuto(
-                    driver=driver,
-                    url="https://siatu-producao.pbh.gov.br/seguranca/login?service=https%3A%2F%2Fsiatu-producao.pbh.gov.br%2Faction%2Fmenu",
-                    usuario=credenciais["usuario"],
-                    senha=credenciais["senha"],
-                    pasta_download=pasta_indice,
-                )
-                # NOTE: o retorno de fluxo Siatu está condicionado à todas etapas serem bem sucedidas - tornar o retorno indepndente?
-                if siatu.acessar() and siatu.login() and siatu.navegar():
-                    return siatu.planta_basica(indice), siatu.download_anexos(indice)
-
-        try:
-            dados_pb, anexos_count = fluxo_siatu()
-        except Exception as e:
-            logger.error(f"Falha no fluxo do SIATU para índice {indice}: {e}.\n")
-
+        with driver_context(pasta_indice, add_config=add_config) as driver:
+            siatu = SiatuAuto(
+                driver=driver,
+                url="https://siatu-producao.pbh.gov.br/seguranca/login?service=https%3A%2F%2Fsiatu-producao.pbh.gov.br%2Faction%2Fmenu",
+                usuario=credenciais["usuario"],
+                senha=credenciais["senha"],
+                pasta_download=pasta_indice,
+            )
+            
+            if siatu.acessar() and siatu.login() and siatu.navegar():
+                (dados_pb,anexos_count) = siatu.planta_basica(indice), siatu.download_anexos(indice)
+            else:
+                logger.error(f"Falha no fluxo do SIATU para índice {indice}.\n")
+                raise Exception(f"Não foi possível completar o fluxo inicial do SIATU para o IC {indice}.")
+       
         logger.info(f"Siatu concluído para índice {indice}.\n")
         return (dados_pb, anexos_count)
 
@@ -164,7 +158,6 @@ class Poligono(SistemaAutomacao):
         """
         Executa a captura do polígono KML. 
         """
-        
         poligono_bot = PoligonoAuto(pasta_download=pasta_indice)
 
         sucesso = poligono_bot.capturar_kml(indice)

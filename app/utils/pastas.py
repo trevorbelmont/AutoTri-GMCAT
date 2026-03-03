@@ -21,10 +21,8 @@ def criar_pasta_resultados() -> str:
     import locale
     from datetime import datetime
 
-    # Define a localidade para português do Brasil
     locale.setlocale(locale.LC_TIME, "pt_BR.UTF-8")
 
-    # Timestamp legível para a pasta resultados
     timestamp_legivel = datetime.now().strftime("Resultados - %d de %B de %Y %Hh%M")
     pasta_resultados = timestamp_legivel
     os.makedirs(pasta_resultados, exist_ok=True)
@@ -39,15 +37,9 @@ def resource_path(relative_path: str) -> str:
         base_path = sys._MEIPASS
 
     except Exception: # Se não achou a pasta MEIPASS, então está rodando no interpretador
-
-        # Modo Desenvolvimento (Baseado na localização do módulo atual, interface.py)
-        # O arquivo interface.py está em: .../app/gui/
-        # O ícone está em:                .../app/
         
-        # Pega a pasta atual do arquivo (app/gui)
         current_dir = os.path.dirname(os.path.abspath(__file__))
         
-        # Sobe um nível para chegar em 'app/' (onde o ícone deve estar)
         base_path = os.path.dirname(current_dir)
 
     return os.path.join(base_path, relative_path)

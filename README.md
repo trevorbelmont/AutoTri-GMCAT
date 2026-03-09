@@ -3,7 +3,7 @@
 ## Executável de Distribuição
 ### [Pasta de Distribuição](https://drive.google.com/drive/folders/1vXxPCR9K_Ow2ADIvdMVsAwrsgmXjRu5z?usp=sharing)
 
-## Documentação Parcial
+## Documentação
 ### [Link Doc Parcial](https://drive.google.com/drive/folders/1eS0YmXbdpFn6Romy1wwn3tWkGPOoeIZu?usp=sharing)
 
 ## Link deste Repositório

@@ -69,7 +69,6 @@ def criar_driver(
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # Flag experimental
     if add_config:
         chrome_options.add_argument(
             "--unsafely-treat-insecure-origin-as-secure=http://dividaativaonline.siatu.pbh.gov.br"

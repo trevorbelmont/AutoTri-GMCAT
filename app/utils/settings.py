@@ -2,8 +2,8 @@ import argparse
 import sys
 
 import logging
-from tkinter.messagebox import RETRY                              # Importa o módulo de LOGGING padrão do python
-from .logger import logger, section_log     # Importa o nosso wrapper de LOGS
+from tkinter.messagebox import RETRY
+from .logger import logger, section_log
 
 # Valores pré settados de variáveis "globais":
 DEBUG = False 

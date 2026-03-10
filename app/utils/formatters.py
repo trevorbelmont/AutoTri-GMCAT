@@ -6,14 +6,8 @@ def format_by_pattern(valor: str, mascara: str, placeholder: str = '#') -> str:
     
     A função primeiro remove todos os caracteres não-alfanuméricos do valor de entrada,
     e então preenche os slots definidos pelo 'placeholder' na máscara com esses caracteres.
-    Caractéres na máscara que não são o placeholder são mantidos como literais (separadores).
-
-    Exemplos:
-        >>> aplicar_mascara("3120160070011", "###### ### ####")
-        '312016 007 0011'
-        
-        >>> aplicar_mascara("12345678900", "###.###.###-##")
-        '123.456.789-00'
+    Caractéres na máscara que não são o placeholder são mantidos como literais (separadores). 
+    Trunca caracteres à mais que so da Máscara.
 
     :param valor: A string de entrada (bruta, pode conter sujeira).
     :param mascara: O padrão visual (ex: "###-####").

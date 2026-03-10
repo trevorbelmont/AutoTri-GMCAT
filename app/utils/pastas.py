@@ -36,10 +36,9 @@ def resource_path(relative_path: str) -> str:
         # Modo PyInstaller: procura a pasta temporária MEIPASS
         base_path = sys._MEIPASS
 
-    except Exception: # Se não achou a pasta MEIPASS, então está rodando no interpretador
-        
+    except Exception:
+        # Se não achou a pasta MEIPASS, então está rodando no interpretador
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        
         base_path = os.path.dirname(current_dir)
 
     return os.path.join(base_path, relative_path)

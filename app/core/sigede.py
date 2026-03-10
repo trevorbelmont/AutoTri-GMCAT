@@ -22,7 +22,7 @@ class SigedeAuto(BotBase):
         self, driver: WebDriver, url: str, usuario: str, senha: str, pasta_download: str
     ):
 
-        super().__init__(driver, settings.TIMEOUT_ESPERA / 2)
+        super().__init__(driver, settings.TIMEOUT_ESPERA/2)
 
         self.url = url
         self.usuario = usuario

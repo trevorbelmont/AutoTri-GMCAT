@@ -92,7 +92,6 @@ def processar_indice(
     
     logger.debug(f"processar_indice: Siatu: {dados_pb, anexos_count}\n")
 
-    # Calcula e atualiza a progress bar para após o Siatu
     if progressBarUpdater and progressBarDict:
         increment = (progressBarDict["peso_tarefa"] * 0.2) * porcao_de_progresso
         progressBarDict["atual"] += increment
@@ -117,7 +116,6 @@ def processar_indice(
 
     logger.debug(f"processar_indice: Urbano: {dados_projeto, projetos_count}\n")
 
-    # Calcula e atualiza a progress bar para após o Urbano
     if progressBarUpdater and progressBarDict:
         increment = (progressBarDict["peso_tarefa"] * 0.2) * porcao_de_progresso
         progressBarDict["atual"] += increment
@@ -143,7 +141,6 @@ def processar_indice(
 
     logger.debug(f"processar_indice: Sisctm: \n{dados_sisctm}\n")
 
-    # Calcula e atualiza a progress bar para após o Sisctm
     if progressBarUpdater and progressBarDict:
         taxa = 0.35 if VIRTUAL_PRTCL else 0.25
         increment = (progressBarDict["peso_tarefa"] * taxa) * porcao_de_progresso
@@ -167,7 +164,6 @@ def processar_indice(
     if kml_gerado:
         logger.info(f"Sucesso: Polígono KML integrado à pasta do IC {indice}.\n")
         
-    # Calcula e atualiza a progress bar para após o Polígono
     if progressBarUpdater and progressBarDict:
         increment = (progressBarDict["peso_tarefa"] * 0.05) * porcao_de_progresso
         progressBarDict["atual"] += increment
@@ -184,7 +180,6 @@ def processar_indice(
     except Exception as e:
         logger.error(f"🚫 {context} | ETAPA: GOOGLE MAPS | ERRO: {e}\n")
 
-    # Calcula e atualiza a progress bar para após o Google Maps
     if progressBarUpdater and progressBarDict:  # Calcula
         increment = (progressBarDict["peso_tarefa"] * 0.2) * porcao_de_progresso
         progressBarDict["atual"] += increment

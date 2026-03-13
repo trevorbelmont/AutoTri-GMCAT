@@ -6,8 +6,6 @@ from .logger import logger
 def retry(max_retries=None, delay=None, exceptions=(Exception,)):
     """
     Decorador para repetir a execução de uma função em caso de erro.
-    Nesse contexto, não é necessário refresh do Selenium, porque
-    cada tentativa recria o driver.
 
     Args:
         max_retries (int): número máximo de tentativas.

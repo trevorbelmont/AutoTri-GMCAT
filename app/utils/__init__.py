@@ -12,7 +12,6 @@ from .relatorio import (
 from . import settings
 from .decorators import retry
 
-# O que é importado (variáveis, classes e métodos)
 __all__ = [
     "CredentialManager",
     "resource_path",

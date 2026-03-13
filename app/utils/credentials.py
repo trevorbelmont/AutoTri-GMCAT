@@ -6,12 +6,6 @@ from utils import logger
 class CredentialManager:
     '''A responsável por Gerenciar as Credenciais - venham de onde venham.'''
 
-
-    '''def __init__(): pass NOTE: poderíamos definir um construtor para forçar CredManager ser de fato uma Classe...
-    Não o faremos pq aqui seria mais interessante usar o __init__ implícito, (ao invés de impedir instanciação com erros ou forçar o pass)
-    que nesse caso faz CredManager ser tratado como namespace. Ao invés de classe - em nível de interpretação.'''
-
-
     @staticmethod
     @contextmanager
     def session_manager() -> Generator[Dict[str, str], None, None]:
@@ -25,7 +19,7 @@ class CredentialManager:
             yield creds
         finally:
             settings.limpar_memoria_credenciais()
-            creds.clear()   # Limpa o dict de creds (aqui e na interface.py)
+            creds.clear()
             if tem_conteudo:
                 logger.debug("[CREDENTIAL MANAGER] Credenciais injetadas na interface e removidas da memória Python com Sucesso.")
 
@@ -37,8 +31,6 @@ class CredentialManager:
             return ("","")
         
         try:
-            #NOTE: robustez: separa apenas no PRIMEIRO "::" - como esperado e viável -> ".split("::", 1)"
-            # Logo, utomaticamente escapa dois pontos, ":", na senha (mas não no usuário)
             (user, password) = raw_string.split("::",1)
             return (user.strip(), password.strip())
         except ValueError:
@@ -51,10 +43,7 @@ class CredentialManager:
         cli_creds = settings._ARG_CREDS
         clean_creds = {}
 
-        #NOTE: Define um mapa de atributos para saber quais procurar de forma elegante
-        # Os atributos (chaves do dict) são independentes: ou seja: não quebra se não achar um deles.
         mapa = {
-        #   "key_dict_settings"     : "key_prefix_dict_final" (o prefixo da chave no dicionário final)
             "sigede_creds_raw"       : "_sgd_cred",
             "siatu_creds_raw"        :  "_stu_cred",
         }
@@ -64,7 +53,6 @@ class CredentialManager:
 
             user, password = CredentialManager._parse_credential_string(str_brut)  
 
-            # Preenche o dict final - de retorno (usando os prefixos do mapa nas chaves)
             clean_creds [f"{prefix}_user"] = user
             clean_creds [f"{prefix}_pass"] = password
 

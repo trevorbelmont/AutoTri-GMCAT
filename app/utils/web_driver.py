@@ -31,7 +31,6 @@ def _kill_selenium_driver(driver):
 
         parent = psutil.Process(driver_pid)
 
-        # Mata todos os processos filhos (renderers, etc)
         for child in parent.children(recursive=True):
             child.kill()
             logger.info(f"Processo filho do Chrome encerrado: {child.pid}")
@@ -59,9 +58,9 @@ def criar_driver(
     """
     chrome_options = Options()
     if not settings.NOT_HEADLESS: 
-        chrome_options.add_argument("--headless=new")  # Executar em segundo plano (por padrão)
+        chrome_options.add_argument("--headless=new")
         
-    chrome_options.add_argument("--start-maximized")  # Executar navegador maximizdo. ¬
+    chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-popup-blocking")
     chrome_options.add_argument("--ignore-certificate-errors")
     chrome_options.add_argument("--disable-extensions")
@@ -70,7 +69,6 @@ def criar_driver(
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     chrome_options.add_argument("--window-size=1920,1080")
 
-    # Flag experimental
     if add_config:
         chrome_options.add_argument(
             "--unsafely-treat-insecure-origin-as-secure=http://dividaativaonline.siatu.pbh.gov.br"
@@ -92,7 +90,6 @@ def criar_driver(
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
 
-    #driver = webdriver.Chrome(options=chrome_options) #¬ duplicidade da instanciação (só essa última que vale, me parece)
     return driver
 
 

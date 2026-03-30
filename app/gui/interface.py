@@ -22,7 +22,7 @@ class InterfaceApp:
 
         self.processar_callback = processar_callback
         self.root = tk.Tk()
-        self.root.title("AutoTri 1.6x - Automação de Triagem")
+        self.root.title("AutoTri 1.6a - Automação de Triagem")
 
         # Guarda as credenciais default (vindas do Credential Manager) que podem ser vazias.
         self.default_creds = default_creds_CRD_MNGR
@@ -490,9 +490,9 @@ class InterfaceApp:
                     f"[SETTINGS] Nova Configuração Aplicada:\n"
                     f"       DEBUG={settings.DEBUG}, NOT_HEADLESS={settings.NOT_HEADLESS},\n"
                     f"       TIMEOUT={settings.TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={settings.TIMEOUT_DOWNLOAD}s\n"
-                    f"       RETRY_MAX={settings.RETRY_MAX}, RETRY_DELAY={settings.RETRY_DELAY}, "
-                    f"LOT_DEBUGGER={settings.LOT_DEBUGGER}"
-                )
+                    f"       RETRY_MAX={settings.RETRY_MAX}, RETRY_DELAY={settings.RETRY_DELAY},\n"
+                    f"       LOT_DEBUGGER = {settings.LOT_DEBUGGER},\n"
+                    f"       DATA_DIR = {settings.DATA_DIR}\n")
 
                 messagebox.showinfo("Sucesso", "Configurações aplicadas com sucesso.")
                 janela.destroy()

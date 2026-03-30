@@ -1,14 +1,14 @@
 import json
 import os
 from typing import Dict, Generator, Optional
-from pathlib import Path
 from contextlib import contextmanager
-
 from utils import settings, logger
+from utils.settings import DATA_DIR
 from utils.security import VaultSecurity
 from utils.logger import ROOT
+from utils.pastas import set_hidden, set_visible
 
-VAULT_FILE = ROOT / "credentials.tri"
+VAULT_FILE = DATA_DIR / "credentials.tri"
 
 class CredentialManager:
     """A responsável por Gerenciar as Credenciais - venham de onde venham."""
@@ -22,11 +22,13 @@ class CredentialManager:
         dados_json = json.dumps(creds)
         blob = VaultSecurity.cifrar(dados_json, chave)
         
+        set_visible(VAULT_FILE)
         # Estrutura do arquivo: Salt (16 bytes) + Blob Criptografado
         with open(VAULT_FILE, "wb") as f:
             f.write(salt + blob.encode())
         
         logger.info("Credenciais salvas no cofre com sucesso.")
+        set_hidden(str(VAULT_FILE))
 
     @staticmethod
     def load_from_vault(master_key: str) -> Dict[str, str]:

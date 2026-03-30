@@ -1,7 +1,7 @@
 from .logger import logger, log_queue, log_path, section_log, reset_log_file, lot_logger_config
 from .credentials import CredentialManager
 from .formatters import format_by_pattern, format_by_pattern2
-from .pastas import abrir_pasta, criar_pasta_resultados, resource_path
+from .pastas import abrir_pasta, criar_pasta_resultados, resource_path, get_persistent_dir, set_hidden
 from .web_driver import driver_context
 from .relatorio import (
     normalizar_nome,
@@ -15,6 +15,8 @@ from .decorators import retry
 __all__ = [
     "CredentialManager",
     "resource_path",
+    "get_persistent_dir",
+    "set_hidden",
     "logger",
     "log_queue",
     "log_path",

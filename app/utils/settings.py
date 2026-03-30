@@ -6,8 +6,11 @@ import logging
 from tkinter.messagebox import RETRY
 from .logger import logger, section_log
 from .logger import ROOT 
+from utils.pastas import get_persistent_dir
 
-CONFIG_FILE = ROOT / "config.json"
+
+DATA_DIR = get_persistent_dir()
+CONFIG_FILE = DATA_DIR / "config.tri"
 
 # Valores pré settados de variáveis "globais":
 DEBUG = False 
@@ -76,73 +79,31 @@ def setup():
 
     parser = argparse.ArgumentParser(description="AutoTri - Configurações de Execução")
 
-    parser.add_argument(
-        "--debug", "-d", "-dbg",
-        default=DEBUG, 
-        action="store_true", 
-        help="Ativa modo de depuração (Logs verbosos nas etapas)."
-    )
+    parser.add_argument("--debug", "-d", "-dbg", action="store_true", default=None)
+    parser.add_argument("--not-headless", "--show-browser", "-sb", action="store_true", default=None)
+    parser.add_argument("--timeout", type=float, default=None)
+    parser.add_argument("--timeout-download", type=float, default=None)
+    parser.add_argument("--retry", type=int, dest="retry", default=None)
+    parser.add_argument("--retry-delay", type=float, dest="retry_delay", default=None)
+    parser.add_argument("--lot-debugger", "-ltdbg", action="store_true", default=None)
 
-    parser.add_argument(
-        "--not-headless", "--show-browser","-sb","-nhdls",
-        default=NOT_HEADLESS, 
-        action="store_true", 
-        help="Ativa modo de exibição do navegador (roda em primeiro plano) para depuração visual de erros de navegação."
-    )
-
-    parser.add_argument(
-        "--timeout", 
-        type=float, 
-        default=TIMEOUT_ESPERA, 
-        help="Tempo limite padrão (em segundos) para esperar elementos na tela durante os carregamentos das páginas."
-    )
-    
-    parser.add_argument(
-        "--timeout-download", "--timeout-longo", 
-        type=float, 
-        default=TIMEOUT_DOWNLOAD, 
-        help="Tempo limite longo (em segundos) para downloads e processamentos pesados."
-    )
-    parser.add_argument(
-        "--retry", "--retries", 
-        type=int,
-        dest="retry", 
-        default=RETRY_MAX, 
-        help="Define o número máximo de retries (tentativas) do decorador @retry - usado no Siatu."
-    )
-    parser.add_argument(
-        "--retry-delay", "--delay", 
-        type=float,
-        dest="retry_delay", 
-        default=RETRY_DELAY, 
-        help="Define o tempo de espera (delay) em segundos entre as retries do decorador @retry - usado no Siatu."
-    )
-
-    parser.add_argument(
-        "--lot-debugger", "-ltdbg",
-        action="store_true",
-        default=LOT_DEBUGGER,
-        help="Gera um arquivo secundário ('Log de Erros.txt') apenas com falhas críticas da última triagem."
-    )
-
-    parser.add_argument("--setSigedeCreds", "--setSigedeCred", "-sSgdCs",type=str,dest="_sigede_creds_raw",help=argparse.SUPPRESS)
-    parser.add_argument("--setSiatuCreds",  "--setSiatuCred", "-sStuCs",type=str,dest="_siatu_creds_raw",help=argparse.SUPPRESS)
+    parser.add_argument("--setSigedeCreds", type=str, dest="_sigede_creds_raw", help=argparse.SUPPRESS)
+    parser.add_argument("--setSiatuCreds", type=str, dest="_siatu_creds_raw", help=argparse.SUPPRESS)
 
     args = parser.parse_args()
 
-    DEBUG = args.debug
-    TIMEOUT_ESPERA = args.timeout
-    TIMEOUT_DOWNLOAD = args.timeout_download
-    RETRY_MAX = args.retry
-    RETRY_DELAY = args.retry_delay
-    NOT_HEADLESS = args.not_headless
-    LOT_DEBUGGER = args.lot_debugger
+    if args.debug is not None: DEBUG = args.debug
+    if args.timeout is not None: TIMEOUT_ESPERA = args.timeout
+    if args.timeout_download is not None: TIMEOUT_DOWNLOAD = args.timeout_download
+    if args.retry is not None: RETRY_MAX = args.retry
+    if args.retry_delay is not None: RETRY_DELAY = args.retry_delay
+    if args.not_headless is not None: NOT_HEADLESS = args.not_headless
+    if args.lot_debugger is not None: LOT_DEBUGGER = args.lot_debugger
+
     _ARG_CREDS.update({
         "sigede_creds_raw": args._sigede_creds_raw,
         "siatu_creds_raw": args._siatu_creds_raw,
     })
-
-
 
     if DEBUG:
         logger.setLevel(logging.DEBUG)
@@ -152,9 +113,9 @@ def setup():
         logger.setLevel(logging.INFO)
 
     logger.debug(f"[SETTINGS] Configuração Carregada:\n       DEBUG={DEBUG}, NOT_HEADLESS={NOT_HEADLESS},\n"
-                 f"       TIMEOUT={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s\n"
-                 f"       RETRY_MAX ={RETRY_MAX}, RETRY_DELAY={RETRY_DELAY}, LOT_DEBUGGER={LOT_DEBUGGER}"
-                 )
+                 f"       TIMEOUT={TIMEOUT_ESPERA}s, TIMEOUT_DOWNLOAD={TIMEOUT_DOWNLOAD}s,\n"
+                 f"       RETRY_MAX ={RETRY_MAX}, RETRY_DELAY={RETRY_DELAY}, LOT_DEBUGGER={LOT_DEBUGGER},\n"
+                 f"       DATA_DIR= {DATA_DIR}\n")
 
 def _get_cli_credentials():
     return _ARG_CREDS

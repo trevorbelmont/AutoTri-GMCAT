@@ -59,6 +59,8 @@ def criar_driver(
     chrome_options = Options()
     if not settings.NOT_HEADLESS: 
         chrome_options.add_argument("--headless=new")
+        # Adciona o user-agent ao chrome para driblar o modo lite do maps
+        chrome_options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-popup-blocking")

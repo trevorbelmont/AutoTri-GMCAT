@@ -49,7 +49,7 @@ class SiatuAuto(BotBase):
                 self.senha
             )
             self.wait.until(EC.element_to_be_clickable((By.NAME, "Login"))).click()
-            logger.info("Login realizado com sucesso")
+            logger.info("Testando login...")
             return True
         except Exception as e:
             logger.error("Erro no login: %s", e)
@@ -59,6 +59,11 @@ class SiatuAuto(BotBase):
         """
         Inicia a navegação até a página de consulta de índice cadastral.
         """
+        try:
+            iframe = self.wait.until(EC.presence_of_element_located((By.NAME, "iframe")))
+            logger.info("Login validado e painel do SIATU carregado com sucesso.")
+        except Exception as e:
+            logger.error(f"Falha de rede ou credenciais no login (Painel não carregou): {e}")
         try:
             # Espera iframe no menu
             iframe = self.wait.until(

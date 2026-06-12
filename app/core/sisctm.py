@@ -78,23 +78,41 @@ class SisctmAuto(BotBase):
 
             btn_login = self.driver.find_element(By.ID, "kc-login")
             self.driver.execute_script("arguments[0].click();", btn_login)
-            logger.info("Login realizado com sucesso")
+            logger.info("Testando login...")
 
             time.sleep(settings.TIMEOUT_ESPERA)
 
-            if self.checar_popup:
+            return True           
+
+        except Exception as e:
+            logger.error("Erro no login do Keycloak PBH: %s", e)
+            raise
+
+    def ativar_camadas(self, indice_cadastral: str) -> bool:
+        """
+        Navega pelo menu do sistema, ativa camadas específicas (Endereço, Lote CP)
+        e aplica o filtro pelo Índice Cadastral."""
+        try:
+            # Testa a presença do expand more no html (msm que esteja tampado pelo pop -up)
+            self.wait.until(
+                EC.presence_of_element_located(
+                    (By.XPATH, "//i[@class='q-icon on-right notranslate material-icons' and text()='expand_more']")
+                )
+            )
+            logger.info("Login validado: Interface do SISCTM carregada com sucesso no navegador.")
+        except Exception as e:
+            logger.error(f"Falha de credenciais ou rede após o login do SISCTM: O painel não carregou. {e}")
+            raise 
+
+        if self.checar_popup:
                 try:
                     checkbox_popup = WebDriverWait(self.driver, 3).until(
                         EC.visibility_of_element_located(
-                            (
-                                By.XPATH,
-                                "//div[@role='checkbox' and @aria-label='Não mostrar novamente']",
-                            )
+                            (By.XPATH,
+                                "//div[@role='checkbox' and @aria-label='Não mostrar novamente']")
                         )
                     )
-                    logger.info(
-                        "Pop-up 'Notas da Versão' detectada. Iniciando tratamento..."
-                    )
+                    logger.info("Pop-up 'Notas da Versão' detectada. Iniciando tratamento...")
 
                     # Marca "Não mostrar novamente" (se ainda não estiver marcado)
                     is_checked = checkbox_popup.get_attribute("aria-checked")
@@ -120,16 +138,6 @@ class SisctmAuto(BotBase):
                     logger.debug("Caminho livre: Nenhuma pop-up detectada (Fail Fast).")
                 except Exception as e:
                     logger.warning(f"Aviso ao tentar tratar pop-up: {e}")
-            return True
-
-        except Exception as e:
-            logger.error("Erro no login do Keycloak PBH: %s", e)
-            return False
-
-    def ativar_camadas(self, indice_cadastral: str) -> bool:
-        """
-        Navega pelo menu do sistema, ativa camadas específicas (Endereço, Lote CP)
-        e aplica o filtro pelo Índice Cadastral."""
 
         etapa = "início"
         try:

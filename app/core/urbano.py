@@ -67,14 +67,13 @@ class UrbanoAuto(BotBase):
             campo_senha.clear()
             campo_senha.send_keys(self.senha)
 
-            # Confirma login
             btn_login = self.wait.until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//input[@type='submit' and @name='Login']")
                 )
             )
             self._click(btn_login)
-            logger.info("Login realizado com sucesso no Urbano")
+            logger.info("Testando login...")
 
             return True
         except Exception as e:
@@ -86,7 +85,17 @@ class UrbanoAuto(BotBase):
         Pesquisa o projeto no Urbano e retorna a quantidade de projetos encontrados.
         Também salva prints e tenta baixar certidão de baixa, alvará ou projeto se existirem.
         """
-        nome_arquivo = "Não identificado (Erro)"
+        nome_arquivo = "Não Identificado (Erro)"  
+        projetos_count = 0
+        dados_projeto = {}
+
+        try:
+            campo1 = self.wait.until(EC.presence_of_element_located((By.NAME, "zonaFiscal")))
+            logger.info("Login validado: Painel do Urbano carregado com sucesso.")
+        except Exception as e:
+            logger.error(f"Falha de credenciais ou rede durante o login do Urbano: {e}")
+            raise
+
         try:
             logger.info("Iniciando pesquisa de projeto para índice: %s", indice)
             indice = indice.strip()

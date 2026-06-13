@@ -4,6 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.common.exceptions import TimeoutException
 from typing import Any, Optional
 from utils import logger, settings
 from .base import BotBase
@@ -133,8 +134,22 @@ class GoogleMapsAuto(BotBase):
                 EC.element_to_be_clickable((By.CSS_SELECTOR, "button.dQDAle"))
             )
             self._click(street_view_button)
-            logger.info("Street View ativado")
-            time.sleep(5)
+            logger.info("Aguardando renderização do Street View...")
+
+            inicio_espera = time.perf_counter()
+            try:
+                # Espera até a bússola do Canvas 3D carregar
+                bussola = self.wait.until(
+                    EC.presence_of_element_located((By.XPATH, "//div[contains(@jsaction, 'compass.main')]"))
+                )
+                tempo_decorrido_ms = int((time.perf_counter() - inicio_espera) * 1000)
+                logger.info(f"Controle do ambiente 3D assumido com sucesso em {tempo_decorrido_ms} ms.")
+                
+            except TimeoutException:
+                logger.warning(f"Tempo esgotado ({settings.TIMEOUT_ESPERA}s) aguardando a renderização do ambiente 3D.")
+            
+            # Pausa adicional pro MIP Mapping do Google (carregamento progressivo pegar nitidez)
+            time.sleep(3)
 
             caminho_print_fachada = os.path.join(
                 self.pasta_download, "google_maps_fachada.png"

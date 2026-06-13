@@ -161,9 +161,28 @@ class SiatuAuto(BotBase):
                     )
 
                     janela_principal = self.driver.current_window_handle
+                     
+                    # Tira Snapshot da pasta para comparaçaõ no método _esperar_download_concluir()
+                    arquivos_anteriores = {}
+                    if os.path.exists(self.pasta_download):
+                        arquivos_anteriores = {
+                            f: os.path.getsize(os.path.join(self.pasta_download, f))
+                            for f in os.listdir(self.pasta_download)
+                        }
+
                     self._click(link_planta_resumida)
-                    logger.info(f"Download da PB disparado após '{nome}'")
-                    time.sleep(2)
+                    logger.info(f"Download da PB disparado após '{nome}'. Aguardando conclusão física em disco...")
+                    
+                    nome_arquivo_esperado = os.path.join(self.pasta_download, f"Planta_Basica_{indice_cadastral}.pdf")
+
+                    download_sucesso = self._esperar_download_concluir(
+                        nome_arquivo_esperado, arquivos_anteriores, timeout_download=20.0
+                    )
+                    
+                    if download_sucesso:
+                        logger.info(f"Arquivo da Planta Básica salvo com sucesso para o link '{nome}'.")
+                    else:
+                        logger.warning(f"Aviso: Tempo limite esgotado para o download do link '{nome}'.")
 
                     # Fecha qualquer janela nova aberta
                     janelas_atuais = self.driver.window_handles

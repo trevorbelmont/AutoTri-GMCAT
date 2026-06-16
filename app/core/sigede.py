@@ -54,19 +54,27 @@ class SigedeAuto(BotBase):
                 EC.element_to_be_clickable((By.XPATH, "//button[@value='ENTRAR']"))
             ).click()
 
-            logger.info("Login realizado com sucesso")
+            logger.info("Testando login...")
 
             time.sleep(5)
             return True
         except Exception as e:
             logger.error("Erro no login: %s", e)
-            return False
+            raise
 
     def navegar(self, protocolo: str) -> bool:
         """
         Navega até o módulo SisCop e realiza uma busca pelo protocolo fornecido.
 
         """
+        try:
+            siscop_btn = self.wait.until(EC.element_to_be_clickable(
+                    (By.XPATH,"//a[@href='/sigede/siscop' and contains(text(), 'SisCop - Web')]")))
+            logger.info("Login validado: Painel do SIGEDE carregado com sucesso.")
+        except Exception as e:
+            logger.error(f"Falha de credenciais ou rede durante login do SIGEDE: {e}")
+            raise
+        
         try:
             logger.info("Navegando para o SisCop")
 

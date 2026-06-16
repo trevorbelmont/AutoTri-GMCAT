@@ -121,7 +121,7 @@ def main():
 
                     else:
                         indices_para_processar = task['ics_a_priori']
-                        progressBarDict["n_cadastrais_associados"] = 1
+                        progressBarDict["n_cadastrais_associados"] = len(indices_para_processar)
         
                         caminho_pasta_virtual = os.path.join(pasta_resultados, id_atual)
                         os.makedirs(caminho_pasta_virtual, exist_ok=True)

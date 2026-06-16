@@ -1,7 +1,65 @@
 import sys
 import os
+import ctypes
 import subprocess
+from pathlib import Path
+from typing import Union
+from utils.logger import logger #
 
+def get_persistent_dir() -> Path:
+    """
+    Define o diretório de dados persistentes (config.tri e credentials.tri) com Fallout:
+    1. Tenta %APPDATA%/AutoTri (Prioridade)
+    2. Se falhar (permissão/erro), cai para a pasta do Executável
+    """ 
+
+    appdata = Path(os.environ.get('APPDATA', '')) / "AutoTri" 
+    try:
+        appdata.mkdir(parents=True, exist_ok=True)
+        
+        # Teste de escrita para garantir resiliência
+        test_file = appdata / ".permissao_teste"
+        test_file.touch()
+        test_file.unlink()
+               
+        logger.debug(f"[PASTAS] Persistência definida no AppData: {appdata}")
+        return appdata
+
+    except Exception as e:
+        logger.warning(f"[PASTAS] Falha ao acessar AppData ({e}). Iniciando sistema de Fallout...")
+
+        #Se executável, devolve a pasta do executável 
+        if getattr(sys, "frozen", False):
+            fallback_path = Path(sys.executable).resolve().parent
+        #Se no modo dev (interpretador), a pasta do repositório
+        else:
+            fallback_path = Path(__file__).resolve().parent.parent.parent
+
+        logger.debug(f"[PASTAS] Persistência definida no diretório de execução: {fallback_path}")
+        return fallback_path
+
+def set_hidden(path: Union[str, Path]):
+    """Marca um arquivo como oculto no Windows, aceitando Path ou String."""
+    try:
+        path_str = str(path)
+        
+        if sys.platform.startswith("win"):
+            # 0x02 é o atributo para 'Hidden' no Windows
+            ctypes.windll.kernel32.SetFileAttributesW(path_str, 0x02)
+            logger.debug(f"[PASTAS] Arquivo marcado como oculto: {path_str}")
+    except Exception as e:
+        logger.warning(f"[PASTAS] O sistema foi incapaz de tornar oculto o arquivo {path_str}: {e}")
+
+def set_visible(path: Union[str, Path]):
+    """Remove atributos especiais e torna o arquivo 'Normal' no Windows."""
+    try:
+        path_str = str(path)
+        if sys.platform.startswith("win") and os.path.exists(path_str):
+            # 0x80 é o atributo para 'Normal' (limpa o Hidden)
+            ctypes.windll.kernel32.SetFileAttributesW(path_str, 0x80)
+            logger.debug(f"[PASTAS] Atributos resetados para Normal: {path_str}")
+    except Exception as e:
+        logger.warning(f"[PASTAS] Falha ao remover ocultação de {path_str}: {e}")
 
 def abrir_pasta(path):
     """Abre a pasta especificada no explorador de arquivos do sistema."""
@@ -42,4 +100,3 @@ def resource_path(relative_path: str) -> str:
         base_path = os.path.dirname(current_dir)
 
     return os.path.join(base_path, relative_path)
-

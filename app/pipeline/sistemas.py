@@ -38,6 +38,12 @@ class Siatu(SistemaAutomacao):
     """Adapter para o sistema SIATU.
     Responsável pela orquestração da extração de dados (Planta Básica) e documentos (Anexos) de um IC.
     """
+    
+    def __init__(self):
+        self.siatu_current_try = 0
+        self.siatu_max_retries = settings.RETRY_MAX
+
+            
     @retry(exceptions=(Exception,))
     def executar(
         self, indice: str, credenciais: Dict[str, str], pasta_indice: str
@@ -50,6 +56,9 @@ class Siatu(SistemaAutomacao):
 
         dados_pb: Dict[str, Any] = {}
         anexos_count: int = 0
+        
+        # Incrementa contador de tentativas para controle
+        self.siatu_current_try += 1
 
         # Ativa a flag: --unsafely-treat-insecure-origin-as-secure durante a criação do driver_context
         add_config = True
@@ -64,7 +73,25 @@ class Siatu(SistemaAutomacao):
             )
             
             if siatu.acessar() and siatu.login() and siatu.navegar():
-                (dados_pb,anexos_count) = siatu.planta_basica(indice), siatu.download_anexos(indice)
+                (dados_pb,erros_pb) = siatu.planta_basica(indice)
+
+                try:
+                    anexos_count = siatu.download_anexos(indice)
+                    erros_anexos = 0
+                except Exception as e:
+                    logger.error(f"Erro ao baixar anexos do Siatu! Erro: {e}")
+                    erros_anexos = 1
+                
+                total_erros = erros_anexos + erros_pb
+                if total_erros > 0:
+                    msg = (f"Houve {total_erros} falha(s) nos downloads da tentativa {self.siatu_current_try}/{self.siatu_max_retries} do Siatu.")
+                    if self.siatu_current_try < self.siatu_max_retries:
+                        msg += " Retentando!"
+                        logger.warning(msg)
+                        raise Exception(msg)
+                    else:
+                        logger.error(f"Esgotadas as {self.siatu_max_retries} tentativas de download de anexos do Siatu. Abortando downloads e propagando dados essenciais para esteira.")
+
             else:
                 logger.error(f"Falha no fluxo do SIATU para índice {indice}.\n")
                 raise Exception(f"Não foi possível completar o fluxo inicial do SIATU para o IC {indice}.")

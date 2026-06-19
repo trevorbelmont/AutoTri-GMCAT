@@ -1,3 +1,4 @@
+from typing import Tuple
 import os
 import time
 import re
@@ -95,7 +96,7 @@ class SiatuAuto(BotBase):
                 raise
             return False
 
-    def planta_basica(self, indice_cadastral: str) -> Dict[str, str]:
+    def planta_basica(self, indice_cadastral: str) -> Tuple[Dict[str, str], int]:
         """
         Consulta índice e obtem a planta básica resumida (PDF). Retorna dicionário com dados.
         """
@@ -142,6 +143,7 @@ class SiatuAuto(BotBase):
             dados_PB = self._capturar_dados_imovel()
 
             # Tenta fazer o download ddos links que podem existir
+            erro_de_downloads: int = 0
             for nome, xpath in links_xpaths.items():
                 try:
                     link = self.wait.until(
@@ -176,13 +178,14 @@ class SiatuAuto(BotBase):
                     nome_arquivo_esperado = os.path.join(self.pasta_download, f"Planta_Basica_{indice_cadastral}.pdf")
 
                     download_sucesso = self._esperar_download_concluir(
-                        nome_arquivo_esperado, arquivos_anteriores, timeout_download=20.0
-                    )
+                        nome_arquivo_esperado, arquivos_anteriores, timeout_download=settings.TIMEOUT_DOWNLOAD*1.5)
                     
                     if download_sucesso:
                         logger.info(f"Arquivo da Planta Básica salvo com sucesso para o link '{nome}'.")
                     else:
                         logger.warning(f"Aviso: Tempo limite esgotado para o download do link '{nome}'.")
+                        erro_de_downloads+=1
+
 
                     # Fecha qualquer janela nova aberta
                     janelas_atuais = self.driver.window_handles
@@ -196,10 +199,12 @@ class SiatuAuto(BotBase):
 
                 except TimeoutException:
                     logger.info(f"Link '{nome}' não encontrado, seguindo...")
+                except Exception as e:
+                    logger.warning(f"Falha inesperada no link '{nome}': {e}")
+                    erro_de_downloads += 1
             
             self._print_alteracoes()
-
-            return dados_PB
+            return (dados_PB, erro_de_downloads)
 
         except TimeoutException as e:
             logger.error("Timeout ao tentar gerar Planta Básica Resumida: %s", e)
@@ -286,6 +291,7 @@ class SiatuAuto(BotBase):
                     arquivo_caminho, arquivos_anteriores
                 ):
                     logger.info("Download concluído")
+                    qtd_anexos += 1
                 else:
                     logger.warning(
                         "Download NÃO concluído no tempo limite: %s", nome_arquivo_raw
@@ -300,7 +306,6 @@ class SiatuAuto(BotBase):
 
                 self.driver.switch_to.window(janela_principal)
 
-                qtd_anexos += 1
 
             logger.info(
                 "Download de anexos finalizado. Total de PDFs processados: %d",
